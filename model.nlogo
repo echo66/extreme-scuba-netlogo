@@ -2,28 +2,62 @@ extensions [array table]
 
 globals [ iteration ]
 
-breed [ scuba-divers ]
-breed [ gambuzino-fish ]
-breed [ sea-urchins ]
+breed [ divers ]
+breed [ fish ]
+breed [ urchins ]
 breed [ bubbles ]
 
-turtles-own [ health ]
-scuba-divers-own [ oxygen messages-inbox messages-outbox ]
+turtles-own [ iterations ]
+divers-own [ health oxygen messages-inbox messages-outbox ]
+fish-own [ health ]
+urchins-own [ health ]
 
 to setup 
   ask patches [set pcolor blue]
-  clear-turtles
-  create-bubbles 30
   
+  random-seed rseed
+  
+  clear-turtles
+  
+  set iteration 0
+  
+  create-bubbles initial-bubbles
+  set-default-shape bubbles "circle"
+  ask bubbles [set color white]
+  ask bubbles [setxy random-pxcor random-pycor]
+  
+  create-fish initial-fish
+  set-default-shape fish "fish"
+  ask fish [set color cyan]
+  ask fish [setxy random-pxcor random-pycor]
+  
+  create-urchins initial-urchins
+  set-default-shape urchins "fish"
+  ask urchins [set color red]
+  ask urchins [setxy random-pxcor random-pycor]
+  
+  create-divers initial-divers
+  set-default-shape divers "person"
+  ask divers [set color green]
+  ask divers [setxy random-pxcor random-pycor]
 end
 
 to go
   
+  fish-cycle
+  urchins-cycle
+  bubbles-cycle
+  
+  set iteration iteration + 1
+  ask turtles [set iterations iterations + 1]
 end
 
+to-report current-health [ diver-id ]
+  
+end
 
 to-report current-oxygen-level [ diver-id ]
-
+  
 end
 
 to-report visible-agents [ diver-id max-distance ]
@@ -43,11 +77,11 @@ to-report received-help [diver-id]
 end
 
 
-to rotate 
+to rotate [ agent-id ]
   
 end
 
-to move-forward 
+to move-forward [ agent-id ]
   
 end
 
@@ -66,13 +100,37 @@ end
 to-report current-iteration
   report iteration
 end
+
+
+
+
+to fish-cycle
+  let sig random 2
+  ask fish [rt random-float 90 * (-1 ^ sig)]
+  ask fish [fd 0.1]
+end
+
+to urchins-cycle
+  let sig random 2
+  ask urchins [rt random-float 90 * (-1 ^ sig)]
+  ask urchins [fd 0.1]
+end
+
+to bubbles-cycle
+  if random-float 1 < bubbles-creation-probability [create-bubbles 1 [set color white setxy random-pxcor random-pycor ]]
+  ask bubbles [if iterations > max-iterations / 5 [die]]
+end
+
+to diver-cycle
+  
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 532
 13
-1257
+1335
 707
-27
+30
 25
 13.0
 1
@@ -84,8 +142,8 @@ GRAPHICS-WINDOW
 1
 1
 1
--27
-27
+-30
+30
 -25
 25
 0
@@ -103,7 +161,7 @@ hit-probability
 hit-probability
 0
 1
-0.19
+0.3
 0.01
 1
 NIL
@@ -115,7 +173,7 @@ INPUTBOX
 253
 326
 max-iterations
-10
+60
 1
 0
 Number
@@ -136,21 +194,21 @@ SLIDER
 480
 399
 513
-buble-creation-probability
-buble-creation-probability
+bubbles-creation-probability
+bubbles-creation-probability
 0
 1
-0.3
+0.52
 0.01
 1
 NIL
 HORIZONTAL
 
 BUTTON
-92
-550
-165
-583
+90
+610
+163
+643
 NIL
 setup
 NIL
@@ -164,10 +222,10 @@ NIL
 1
 
 BUTTON
-171
-550
-234
-583
+169
+610
+232
+643
 NIL
 go\n
 NIL
@@ -216,7 +274,7 @@ INPUTBOX
 223
 132
 initial-bubbles
-0
+20
 1
 0
 Number
@@ -227,7 +285,7 @@ INPUTBOX
 358
 70
 initial-divers
-0
+5
 1
 0
 Number
@@ -238,7 +296,7 @@ INPUTBOX
 223
 70
 initial-fish
-0
+20
 1
 0
 Number
@@ -249,10 +307,66 @@ INPUTBOX
 358
 132
 initial-urchins
-NIL
+10
 1
 0
-String
+Number
+
+INPUTBOX
+247
+608
+408
+668
+rseed
+10
+1
+0
+Number
+
+SLIDER
+91
+517
+399
+550
+bubble-max-iterations-age
+bubble-max-iterations-age
+1
+max-iterations
+16.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+145
+175
+317
+208
+fire-distance
+fire-distance
+1
+3
+1.9
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+354
+194
+526
+227
+comm-distance
+comm-distance
+1
+5
+2
+0.01
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
