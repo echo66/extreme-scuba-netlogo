@@ -2,15 +2,15 @@ extensions [array table]
 
 globals [ iteration ]
 
-breed [ divers ]
-breed [ fish ]
-breed [ urchins ]
-breed [ bubbles ]
+breed [ divers diver ]
+breed [ gambuzinos gambuzino ]
+breed [ urchins urchin ]
+breed [ bubbles bubble ]
 
 turtles-own [ iterations ]
-divers-own [ health oxygen messages-inbox messages-outbox ]
-fish-own [ health ]
-urchins-own [ health ]
+divers-own [ health oxygen captured stored killed hitted-by messages-inbox messages-outbox ]
+gambuzinos-own [ health hitted-by ]
+urchins-own [ health hitted-by ]
 
 to setup 
   ask patches [set pcolor blue]
@@ -23,28 +23,43 @@ to setup
   
   create-bubbles initial-bubbles
   set-default-shape bubbles "circle"
-  ask bubbles [set color white]
-  ask bubbles [setxy random-pxcor random-pycor]
+  ask bubbles [
+    set color white
+    setxy random-pxcor random-pycor
+  ]
   
-  create-fish initial-fish
-  set-default-shape fish "fish"
-  ask fish [set color cyan]
-  ask fish [setxy random-pxcor random-pycor]
+  create-gambuzinos initial-gambuzinos
+  set-default-shape gambuzinos "fish"
+  ask gambuzinos [
+    set color cyan
+    setxy random-pxcor random-pycor
+    set hitted-by []
+  ]
   
   create-urchins initial-urchins
   set-default-shape urchins "fish"
-  ask urchins [set color red]
-  ask urchins [setxy random-pxcor random-pycor]
+  ask urchins [
+    set color red
+    setxy random-pxcor random-pycor
+    set hitted-by []
+  ]
   
   create-divers initial-divers
   set-default-shape divers "person"
-  ask divers [set color green]
-  ask divers [setxy random-pxcor random-pycor]
+  ask divers [
+    set color green
+    setxy random-pxcor random-pycor
+    set hitted-by []
+    set oxygen 100
+    set health 100
+    set label (word health " | " precision oxygen 5)
+  ]
 end
 
 to go
   
-  fish-cycle
+  diver-cycle
+  gambuzinos-cycle
   urchins-cycle
   bubbles-cycle
   
@@ -60,40 +75,20 @@ to-report current-oxygen-level [ diver-id ]
   
 end
 
-to-report visible-agents [ diver-id max-distance ]
+to-report visible-agents [ max-distance max-angle ]
+  let myID who
+  report (turtles in-cone max-distance max-angle) with [who != myID]
+end
+
+to-report visible-emotional-state [ ]
   
 end
 
-to-report visible-emotional-state [ diver-id ]
+to-report stinged-by [ ]
   
 end
 
-to-report stinged-by [diver-id]
-  
-end
-
-to-report received-help [diver-id]
-  
-end
-
-
-to rotate [ agent-id ]
-  
-end
-
-to move-forward [ agent-id ]
-  
-end
-
-to fire-harpoon [ attacker-id target-id target-type ]
-  
-end
-
-to offer-oxygen [ source-id receiver-id ]
-  
-end
-
-to offer-fish [ source-id receiver-id ]
+to-report received-help [ ]
   
 end
 
@@ -102,27 +97,108 @@ to-report current-iteration
 end
 
 
+to rotate [ agent-id angle ]
+  ask turtle agent-id [rt angle]
+end
 
-
-to fish-cycle
+to rotate-randomly [ agent-id ]
   let sig random 2
-  ask fish [rt random-float 90 * (-1 ^ sig)]
-  ask fish [fd 0.1]
+  ask turtle agent-id [rt random-float 90 * (-1 ^ sig)]
+end
+
+to move-randomly [ agent-id ]
+  ifelse random 2 = 1 [ 
+    move-forward agent-id 1 
+  ][ 
+    rotate-randomly agent-id 
+  ]
+end
+
+to move-forward [ agent-id dist ]
+  ask turtle agent-id [fd dist]
+end
+
+to fire-harpoon [ attacker-id target-id ]
+  if random-float 1 < hit-probability [
+    ask turtle target-id [
+      set hitted-by lput attacker-id hitted-by
+    ]
+  ]
+end
+
+to offer-oxygen [ source-id receiver-id quant ]
+  ask turtle source-id [set oxygen oxygen - quant]
+  ask turtle receiver-id [set oxygen oxygen + quant]
+end
+
+to offer-gambuzinos [ source-id receiver-id quant ]
+  ask turtle source-id [set stored stored - quant]
+  ask turtle receiver-id [set stored stored + quant]
+end
+
+
+
+
+
+to gambuzinos-cycle
+  ask gambuzinos [
+    let sig random 2
+    rt random-float 90 * (-1 ^ sig)
+    fd 0.1
+  ]
+  if gambuzino-creation-probability > 0 and random-float 1 < gambuzino-creation-probability [
+    create-gambuzinos 1 [
+      set color cyan
+      setxy random-pxcor random-pycor
+    ]
+  ]
+      
 end
 
 to urchins-cycle
-  let sig random 2
-  ask urchins [rt random-float 90 * (-1 ^ sig)]
-  ask urchins [fd 0.1]
+  ask urchins [
+    let sig random 2
+    rt random-float 90 * (-1 ^ sig)
+    fd 0.1
+  ]
+  if urchins-creation-probability > 0 and random-float 1 < urchins-creation-probability [
+    create-urchins 1 [
+      set color red
+      setxy random-pxcor random-pycor
+    ]
+  ]
 end
 
 to bubbles-cycle
-  if random-float 1 < bubbles-creation-probability [create-bubbles 1 [set color white setxy random-pxcor random-pycor ]]
-  ask bubbles [if iterations > max-iterations / 5 [die]]
+  if random-float 1 < bubbles-creation-probability [
+    create-bubbles 1 [
+      set color white setxy random-pxcor random-pycor 
+    ]
+  ]
+  ask bubbles [
+    if iterations > max-iterations / 5 [
+      die
+    ]
+  ]
 end
 
 to diver-cycle
+  ask divers [
+    move-randomly who
+  ]
+  ask divers [
+    ;; If a diver sees a fish, fire the harpoon to (try) kill it.
+    ask gambuzinos in-cone 10 180 [
+      print word "vejo o gambuzino " who
+    ]
+  ]
   
+  ask divers [
+    set oxygen oxygen - 0.1
+  ]
+  ask divers [
+    set label (word health " | " precision oxygen 5)
+  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -168,21 +244,21 @@ NIL
 HORIZONTAL
 
 INPUTBOX
-90
-266
-253
-326
+91
+296
+254
+356
 max-iterations
-60
+1000
 1
 0
 Number
 
 MONITOR
-262
-266
-385
-311
+263
+296
+386
+341
 Current Iteration
 current-iteration
 17
@@ -198,7 +274,7 @@ bubbles-creation-probability
 bubbles-creation-probability
 0
 1
-0.52
+0
 0.01
 1
 NIL
@@ -243,11 +319,11 @@ SLIDER
 407
 399
 440
-sea-urchins-creation-probability
-sea-urchins-creation-probability
+urchins-creation-probability
+urchins-creation-probability
 0
 1
-0.3
+0
 0.01
 1
 NIL
@@ -258,11 +334,11 @@ SLIDER
 444
 399
 477
-gambuzino-fish-creation-probability
-gambuzino-fish-creation-probability
+gambuzino-creation-probability
+gambuzino-creation-probability
 0
 1
-0.3
+0
 0.01
 1
 NIL
@@ -274,7 +350,7 @@ INPUTBOX
 223
 132
 initial-bubbles
-20
+0
 1
 0
 Number
@@ -285,7 +361,7 @@ INPUTBOX
 358
 70
 initial-divers
-5
+1
 1
 0
 Number
@@ -295,8 +371,8 @@ INPUTBOX
 10
 223
 70
-initial-fish
-20
+initial-gambuzinos
+1
 1
 0
 Number
@@ -307,7 +383,7 @@ INPUTBOX
 358
 132
 initial-urchins
-10
+0
 1
 0
 Number
@@ -324,45 +400,105 @@ rseed
 Number
 
 SLIDER
-91
-517
-399
-550
-bubble-max-iterations-age
-bubble-max-iterations-age
-1
-max-iterations
-16.5
-0.1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-145
-175
-317
-208
+90
+146
+359
+179
 fire-distance
 fire-distance
 1
-3
-1.9
+5
+2
 0.01
 1
 NIL
 HORIZONTAL
 
 SLIDER
-354
-194
-526
-227
+90
+184
+360
+217
 comm-distance
 comm-distance
 1
 5
+3.5
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+90
+222
+360
+255
+visibility-distance
+visibility-distance
+1
+5
+3.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1446
+135
+1630
+168
+urchin-speed
+urchin-speed
+0.1
 2
+0.1
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1446
+175
+1630
+208
+gambuzino-speed
+gambuzino-speed
+0.1
+2
+0.1
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1446
+215
+1630
+248
+diver-speed
+diver-speed
+0.1
+2
+1
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1394
+348
+1629
+381
+oxygen-loss-per-iteration
+oxygen-loss-per-iteration
+0.1
+2
+0.1
 0.01
 1
 NIL
