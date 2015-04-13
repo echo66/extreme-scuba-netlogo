@@ -1,0 +1,50 @@
+to init-bubbles [ n ]
+	create-bubbles n [
+        set color white
+        setxy random-pxcor random-pycor
+    ]
+end
+
+to init-gambuzinos [ n ]
+    create-gambuzinos n [
+        set hit-by (list)
+        set attacked-by (list)
+
+        set color cyan
+        setxy random-pxcor random-pycor
+        ;;set label (word "g" who)
+    ]
+end
+
+to init-urchins [ n ]
+	create-urchins n [
+        set hit-by (list)
+        set attacked-by (list)
+
+        set color red
+        setxy random-pxcor random-pycor
+        ;;set label (word "u" who)
+    ]
+end
+
+to init-divers [ n ]
+	create-divers n [
+
+        set health 100
+        set oxygen 100
+        set captured 0
+        set stored 0
+        set killed 0
+        set actions-box []
+        set hit-by []
+        set attacked-by []
+        set known-urchins (turtle-set)
+        set known-divers (turtle-set)
+        set known-bubbles (turtle-set)
+        set known-gambuzinos (turtle-set)
+
+        set color green
+        setxy random-pxcor random-pycor
+        set label (word health " | " precision oxygen 5)
+    ]
+end

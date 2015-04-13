@@ -1,0 +1,25 @@
+to gambuzinos-cycle
+  
+  ;;; Rotate randomly & Move forward
+  ask gambuzinos [
+    if length hit-by > 0 [
+      ;print hit-by
+      let attacker (diver (item 0 hit-by))
+      if attacker != nobody [
+        ask diver (item 0 hit-by) [
+          set captured (captured + 1)
+        ]
+        die
+      ]
+    ]
+    let sig random 2
+    rt random-float 20 * (-1 ^ sig)
+    fd gambuzino-speed
+  ]
+  
+  ;;; Create a new gambuzino
+  if gambuzino-creation-probability > 0 and random-float 1 < gambuzino-creation-probability [
+    init-gambuzinos 1
+  ]
+    
+end

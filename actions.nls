@@ -1,0 +1,49 @@
+to act-rotate [ agent-id angle ]
+  ask turtle agent-id [rt angle]
+end
+
+to act-rotate-randomly [ agent-id ]
+  let sig random 2
+  ask turtle agent-id [rt random-float 90 * (-1 ^ sig)]
+end
+
+to act-move-randomly [ agent-id ]
+  ifelse random 2 = 1 [ 
+    act-move-forward agent-id 1 
+  ][ 
+    act-rotate-randomly agent-id 
+  ]
+end
+
+to act-move-forward [ agent-id dist ]
+  ask turtle agent-id [fd dist]
+end
+
+to act-fire-harpoon [ attacker-id target-id ]
+  ask turtle target-id [
+      set attacked-by lput attacker-id attacked-by
+      if random-float 1 < hit-probability [
+        set hit-by lput attacker-id hit-by
+        print (word "Diver " attacker-id " hit the agent " target-id)
+      ]
+    ] 
+end
+
+to act-sting [ urchin-id diver-id ]
+  ask diver diver-id [
+    set attacked-by lput urchin-id attacked-by
+    set hit-by lput urchin-id hit-by
+    set health (health - 10)
+    ;print (word "Urchin " urchin-id " stinged " diver-id)
+  ]
+end
+
+to act-offer-oxygen [ source-id receiver-id quant ]
+  ask turtle source-id [set oxygen oxygen - quant]
+  ask turtle receiver-id [set oxygen oxygen + quant]
+end
+
+to act-offer-gambuzinos [ source-id receiver-id quant ]
+  ask turtle source-id [set stored stored - quant]
+  ask turtle receiver-id [set stored stored + quant]
+end

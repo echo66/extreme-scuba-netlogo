@@ -1,0 +1,17 @@
+to mark-areas [turtles-to-use center-color-code]
+  ask turtles-to-use [
+    ask turtles-to-use [
+      let x xcor
+      let y ycor
+      ask patch (x) (y) [set pcolor center-color-code]
+      ask patch (x + 1) (y) [set pcolor center-color-code + 1]
+      ask patch (x - 1) (y) [set pcolor center-color-code + 1]
+      ask patch (x) (y + 1) [set pcolor center-color-code + 1]
+      ask patch (x) (y - 1) [set pcolor center-color-code + 1]
+      ask patch (x + 1) (y - 1) [set pcolor center-color-code + 2]
+      ask patch (x + 1) (y + 1) [set pcolor center-color-code + 2]
+      ask patch (x - 1) (y - 1) [set pcolor center-color-code + 2]
+      ask patch (x - 1) (y + 1) [set pcolor center-color-code + 2]
+    ]
+  ]
+end
