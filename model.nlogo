@@ -1,6 +1,16 @@
 extensions [array table]
 
-globals [ iteration simulation-actions iteration-actions]
+globals [ 
+
+  ;;; "iteration": An integer stating the current iteration of the model.
+  iteration 
+
+  ;;; "simulation-actions": A list of lists of actions. Each list represents an iteration and each element of each list is an action performed by a turtle at the iteration.
+  simulation-actions
+
+  ;;; "iteration-actions": At each iteration, each turtle pushes the chosen action to this list. After all turtles push the chosen actions, the system will iterate through this list and evaluate each action and its impact in the model. This list allows fair model execution due to the fact that Netlogo does not use a true asynchronous and parallel execution of the turtles. This list is used as a "barrier" at the end of each model cycle.
+  iteration-actions   
+]
 
 breed [ divers diver ]
 breed [ gambuzinos gambuzino ]
@@ -29,12 +39,12 @@ gambuzinos-own [ ]
 urchins-own [ ]
 
 __includes[
-  "init-agents.nls" 
+  ;"init-agents.nls" 
   "extensions/communication.nls" 
-  "urchins-cycle.nls" 
-  "gambuzinos-cycle.nls" 
-  "bubbles-cycle.nls" 
-  "percepts.nls"
+  ;"CYCLE-URCHINS.nls" 
+  ;"CYCLE-GAMBUZINOS.nls" 
+  ;"CYCLE-BUBBLES.nls" 
+  ;"percepts.nls"
 ]
 
 
@@ -76,17 +86,101 @@ to go
   
   ask patches [set pcolor blue]
   
-  print (word "ITERATION " iteration)
+  ;print (word "ITERATION " iteration)
   
-  divers-cycle
-  gambuzinos-cycle
-  urchins-cycle
-  bubbles-cycle
+  ask turtles [
+   
+   ifelse is-gambuzino? turtle who [
+     CYCLE-GAMBUZINOS
+   ] [
+     ifelse is-urchin? turtle who [
+       CYCLE-URCHINS
+     ] [
+       ifelse is-bubble? turtle who [
+          CYCLE-BUBBLES
+       ][
+         if is-diver? turtle who [ ;;; just to lock to this set of breeds
+           CYCLE-DIVERS
+           
+           ;;; Reduce the oxygen for each diver.
+           set oxygen (oxygen - oxygen-loss-per-iteration)
+           
+           ;;; Kill divers without oxygen or health.
+           if health <= 0 or oxygen <= 0 [
+             ;print (word "Diver " who " has died")
+             die
+           ]
+         ]
+       ]
+     ]
+   ]
+   
+   set iterations iterations + 1 
+   
+  ]
   
-  set iteration iteration + 1
-  ask turtles [set iterations iterations + 1]
   
-  if (count divers = 0) or iteration > max-iterations [ stop ]
+  ;;; EXECUTE ITERATION ACTIONS.
+  foreach iteration-actions [
+    run ?1
+  ]
+  set iteration-actions (list)
+  
+  ;;; CHECK WHICH TURTLES SHOULD BE ALIVE IN THE NEXT ITERATION.
+  let to-die (list)
+  ask turtles [
+    
+    ifelse is-bubble? turtle who [
+      if iterations > max-iterations / 5 [
+        die
+      ]
+    ] [
+      ifelse is-diver? turtle who [
+        if health <= 0 or oxygen <= 0 [ 
+          set to-die lput who to-die 
+        ]
+      ] [
+        if ((is-gambuzino? turtle who) or (is-urchin? turtle who)) and (not empty? hit-by) [
+          let attacker (diver (item 0 hit-by))
+          if attacker != nobody [
+            ask diver (item 0 hit-by) [
+              set stored (stored + 1)
+              set captured (captured + 1)
+            ]
+            set to-die lput who to-die
+          ]
+          set hit-by (list)
+        ]
+      ]
+    ]  
+  ]
+  
+  foreach to-die [
+    ask turtle ?1 [
+      die
+      print (word ?1 " is now dead.")
+    ]
+  ]
+  
+  ;;; CREATE NEW TURTLES
+  ;;;; Create a new bubble.
+  if random-float 1 < bubbles-creation-probability [
+    init-bubbles 1
+  ]
+  ;;;; Create a new bubble.
+  if random-float 1 < urchins-creation-probability [
+    init-urchins 1
+  ]
+  ;;;; Create a new bubble.
+  if random-float 1 < gambuzinos-creation-probability [
+    init-gambuzinos 1
+  ]
+  
+  ifelse (count divers) = 0 or iteration >= max-iterations [ 
+    stop 
+  ] [
+    set iteration iteration + 1  
+  ]
   
 end
 
@@ -126,7 +220,6 @@ to act-fire-harpoon [ attacker-id target-id ]
       set attacked-by lput attacker-id attacked-by
       if random-float 1 < hit-probability [
         set hit-by lput attacker-id hit-by
-        print (word "Diver " attacker-id " hit the agent " target-id)
       ]
     ] 
 end
@@ -136,19 +229,33 @@ to act-sting [ urchin-id diver-id ]
     set attacked-by lput urchin-id attacked-by
     set hit-by lput urchin-id hit-by
     set health (health - 10)
-    ;print (word "Urchin " urchin-id " stinged " diver-id)
   ]
 end
 
 to act-offer-oxygen [ source-id receiver-id quant ]
+  print "offering oxygen"
   ask turtle source-id [set oxygen oxygen - quant]
   ask turtle receiver-id [set oxygen oxygen + quant]
 end
 
 to act-offer-gambuzinos [ source-id receiver-id quant ]
+  print "offering gambuzinos"
   ask turtle source-id [set stored stored - quant]
   ask turtle receiver-id [set stored stored + quant]
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ;;;---------------------------------------------------------------------------
 ;;;---------------------------------------------------------------------------
@@ -156,46 +263,84 @@ end
 ;;;---------------------------------------------------------------------------
 ;;;---------------------------------------------------------------------------
 
-to divers-cycle
+to CYCLE-DIVERS
   
-  ask divers [
-    
-    ;;; COLLECT VISIBLE ENTITIES
-    set known-urchins (visible-agents visibility-distance 180 urchins)
-    set known-divers (visible-agents visibility-distance 180 divers)
-    set known-bubbles (visible-agents visibility-distance 180 bubbles)
-    set known-gambuzinos (visible-agents visibility-distance 180 gambuzinos)
-    
-    ;;; FIRE RULES
-    rule-seek-oxygen
-    rule-seek-gambuzinos
-    rule-deal-with-urchins
-    
-    ;;; RANK & SELECT
-    ;let selected-action (item 0 (sort-by [(item 0 ?1) > (item 0 ?2)] actions-box))
-    
-    ;;; RUN SELECTED ACTION
-    ;run (item 1 selected-action)
-    print actions-box
-    set actions-box []
-    
-    ;mark-areas
-  ]
+  ;;; COLLECT VISIBLE ENTITIES
+  set known-urchins (perc-visible-agents visibility-distance 180 urchins)
+  set known-divers (perc-visible-agents visibility-distance 180 divers)
+  set known-bubbles (perc-visible-agents visibility-distance 180 bubbles)
+  set known-gambuzinos (perc-visible-agents visibility-distance 180 gambuzinos)
+  set actions-box lput (list 0 (word "act-move-randomly " who) "default") actions-box
   
-  ;;; Reduce the oxygen for each diver.
-  ask divers [
-    set oxygen (oxygen - oxygen-loss-per-iteration)
-    set label (word health " | " precision oxygen 5)
-  ]
+  listen-to-messages
+  ;;; FIRE RULES
+  rule-seek-oxygen
+  rule-seek-gambuzinos
+  rule-deal-with-urchins
+  rule-team-work
+  rule-share-known-data
   
-  ;;; Kill divers without oxygen or health.
+  ;;; RANK & SELECT
+  let selected-action (item 0 (sort-by [(item 0 ?1) > (item 0 ?2)] actions-box))
+  
+  ;;; RUN SELECTED ACTION
+  ;run (item 1 selected-action)
+  set iteration-actions lput (item 1 selected-action) iteration-actions
+  
+  ;print actions-box
+  set actions-box []
+  
+  ;mark-areas
+  
+  set label (word health " | " precision oxygen 5)
+  
+end
+
+to CYCLE-GAMBUZINOS
+  
+  ;;; Rotate randomly & Move forward
+  let sig random 2
+  rt random-float 20 * (-1 ^ sig)
+  fd gambuzino-speed
+    
+end
+
+to CYCLE-URCHINS
+  
+  ;;; Rotate randomly & Move forward
+  let sig random 2
+  let urchin-id who
+  rt random-float 20 * (-1 ^ sig)
+  fd urchin-speed
+  
+  ;;; Sting nearby divers
   ask divers [
-    if health <= 0 or oxygen <= 0 [
-      print (word "Diver " who " has died")
-      die
+    let diver-id who
+    if distance myself <= 1 [ 
+      act-sting urchin-id diver-id 
     ]
   ]
+  
 end
+
+to CYCLE-BUBBLES
+  
+  ;;; Replenish the oxygen of divers that are "touching" a bubble.
+  ask divers [
+    if distance myself < 1.5 [ 
+      ;;print (word "Diver " who " replenished its oxygen supply")
+      set oxygen 100
+    ]
+  ]
+  
+end
+
+
+
+
+
+
+
 
 
 
@@ -211,26 +356,26 @@ to rule-seek-oxygen
   let rule-name "rule-seek-oxygen"
   
   ifelse oxygen < 30 and (count known-bubbles) > 0 [
-    ;print (word "Diver " who "needs oxygen, is turning to the nearest bubble and moving towards it")
+    ;;print (word "Diver " who "needs oxygen, is turning to the nearest bubble and moving towards it")
     let nearest-bubble min-one-of known-bubbles [distance myself]
     
     ifelse (subtract-headings heading (towards nearest-bubble)) != 0 [
       let command-to-add (word "act-face-to " who " " ([who] of nearest-bubble))
-      set actions-box lput (list (random-float 1) command-to-add rule-name) actions-box
-      act-face-to who ([who] of nearest-bubble)
+      add-to-act-box (min (list (100 - oxygen) 50)) command-to-add rule-name
+      ;act-face-to who ([who] of nearest-bubble)
     ] [
-      let command-to-add (word "act-move-forward " who " " diver-speed)
-      set actions-box lput (list (random-float 1) command-to-add rule-name) actions-box
-      act-move-forward who diver-speed
+      let command-to-add (word "act-move-forward " who " " (min (list diver-speed (distance nearest-bubble))))
+      add-to-act-box (min (list (100 - oxygen) 50)) command-to-add rule-name
+      ;act-move-forward who diver-speed
     ]
   ] [
     ifelse oxygen < 30 [
-      ; ;print (word "Diver " who " needs oxygen and is broadcasting a message requesting bubble locations.")
+      ; ;;print (word "Diver " who " needs oxygen and is broadcasting a message requesting bubble locations.")
       ; TODO: broadcast message requesting the locations of known bubbles
       ; Meanwhile, just move randomly.
-      act-move-randomly who
+      ;act-move-randomly who
     ] [
-      act-move-randomly who
+      ;act-move-randomly who
     ]
   ]
   
@@ -242,34 +387,44 @@ to rule-seek-gambuzinos
   let rule-name "rule-seek-gambuzinos"
     
   ifelse count known-gambuzinos > 0 [
-    ;print (word "Diver " diver-id " sees " (count known-gambuzinos) " gambuzinos")
+    ;;print (word "Diver " diver-id " sees " (count known-gambuzinos) " gambuzinos")
     
     let nearest-gambuzino min-one-of known-gambuzinos [distance myself]
     let gambuzino-id ([who] of nearest-gambuzino)
     
     ifelse (distance nearest-gambuzino) <= fire-distance [
       
+      if (([xcor] of nearest-gambuzino) = xcor) and (([ycor] of nearest-gambuzino) = ycor) [
+        let command-to-add (word "act-fire-harpoon " diver-id " " gambuzino-id)
+        add-to-act-box (100) command-to-add rule-name
+        stop
+      ]
+      
       ifelse (subtract-headings (heading) (towards nearest-gambuzino)) > 70 
         [ 
           let command-to-add (word "act-face-to " who " " ([who] of nearest-gambuzino))
-          set actions-box lput (list (random-float 1) command-to-add rule-name) actions-box
-          act-face-to who ([who] of nearest-gambuzino)
+          add-to-act-box (100 / (max (list 0.5 (distance nearest-gambuzino)))) command-to-add rule-name
+          ;act-face-to who ([who] of nearest-gambuzino)
+          stop
         ] [ 
           let command-to-add (word "act-fire-harpoon " diver-id " " gambuzino-id)
-          set actions-box lput (list (random-float 1) command-to-add rule-name) actions-box
-          act-fire-harpoon diver-id gambuzino-id 
+          add-to-act-box (100 / (max (list 0.5 (distance nearest-gambuzino)))) command-to-add rule-name
+          ;act-fire-harpoon diver-id gambuzino-id 
+          stop
         ]
     ] [
-      ;print (word "Diver " who " is moving to capture gambuzino "  gambuzino-id)
+      ;;print (word "Diver " who " is moving to capture gambuzino "  gambuzino-id)
       ifelse (subtract-headings (heading) (towards nearest-gambuzino)) > 45 
         [ 
           let command-to-add (word "act-face-to " who " " ([who] of nearest-gambuzino))
-          set actions-box lput (list (random-float 1) command-to-add rule-name) actions-box
-          act-face-to who ([who] of nearest-gambuzino)
+          add-to-act-box (100 / (max (list 0.5 (distance nearest-gambuzino)))) command-to-add rule-name
+          ;act-face-to who ([who] of nearest-gambuzino)
+          stop
         ] [ 
           let command-to-add (word "act-move-forward " who " " diver-speed)
-          set actions-box lput (list (random-float 1) command-to-add rule-name) actions-box
-          act-move-forward who diver-speed 
+          add-to-act-box (100 / (max (list 0.5 (distance nearest-gambuzino)))) command-to-add rule-name
+          ;act-move-forward who diver-speed 
+          stop
         ]
     ]
   ] [
@@ -280,37 +435,224 @@ end
 to rule-deal-with-urchins
   
   let rule-name "rule-deal-with-urchins"
+  let nearest-gambuzino min-one-of known-gambuzinos [distance myself]
+  let priority 0
+  ifelse nearest-gambuzino = nobody [
+    let nearest-urchin min-one-of known-urchins [distance myself]
+    if nearest-urchin != nobody [
+      set priority (100 / (distance nearest-urchin))
+    ]
+  ] [
+    set priority (100 * (max (list 0.5 (distance nearest-gambuzino))))
+  ]
   
   if health < (count known-urchins) and (count known-divers) = 0 [
     let command-to-add (word "act-rotate " who " " 90)
-    set actions-box lput (list (random-float 1) command-to-add rule-name) actions-box
-    act-rotate who 90
+    add-to-act-box priority command-to-add rule-name
+    ;act-rotate who 90
     stop
   ]
   if health < (count known-urchins) and (count known-divers) >= (count known-urchins) [
     let nearest-urchin min-one-of known-urchins [distance myself]
     let command-to-add (word "act-fire-harpoon " who " " ([who] of nearest-urchin))
-    set actions-box lput (list (random-float 1) command-to-add rule-name) actions-box
-    act-fire-harpoon who ([who] of nearest-urchin)
+    add-to-act-box priority command-to-add rule-name
+    ;act-fire-harpoon who ([who] of nearest-urchin)
     stop
   ]
   if health > (count known-urchins) and (count known-urchins) > 0 [
     let nearest-urchin min-one-of known-urchins [distance myself]
     let command-to-add (word "act-fire-harpoon " who " " ([who] of nearest-urchin))
-    set actions-box lput (list (random-float 1) command-to-add rule-name) actions-box
-    act-fire-harpoon who ([who] of nearest-urchin)
+    add-to-act-box priority command-to-add rule-name
+    ;act-fire-harpoon who ([who] of nearest-urchin)
+    stop
   ]
   
 end
 
 to rule-survive 
+  ;;; IF there is a "low survival rate"
+  ;;;  AND the agent knows an agent
+  ;;; THEN follow that agent
+  ;;; TODO
+end
+
+to rule-team-work
+  let rule-name "rule-team-work"
+
+  ;;; IF the agent has very low health level (e.g. 10) AND has a neighbor with higher health level THEN
+  ;;;  OFFER A CAPTURED GAMBUZINOS TO THE OTHER AGENT
+  if (health < 30 or oxygen < 30) and (count known-divers) > 0 and stored > 0 [
+    let nearest-diver min-one-of known-divers [distance myself]
+    if (distance nearest-diver) <= comm-distance [
+      let gambuzinos-to-give ((30 / (min (list health oxygen))) * (max (list stored 10)))
+      let command-to-add (word "act-offer-gambuzinos " who " " ([who] of nearest-diver) " " gambuzinos-to-give)
+      add-to-act-box (100 + (min (list health oxygen))) command-to-add rule-name
+      stop
+    ]
+  ]
   
+  ;;; IF there is a "low survival rate" 
+  ;;;  AND no bubbles are available 
+  ;;; THEN send "all" gambuzinos to agents within comm-distance
+  if health < 20 and oxygen < 10 and (count known-divers) > 0 and (known-bubbles) = 0 and stored > 0 [
+    ;; I cannot use this rule, according to the project description (i.e. only one action per iteration).
+    ifelse stored > (count known-divers) [
+      ;; TODO
+    ] [
+      ;; TODO
+    ]
+  ]
+  
+  
+end
+
+to rule-share-known-data
+  let rule-name "rule-broadcast-known-data"
+  ;;; IF the agent sees bubbles or urchins
+  ;;; THEN broadcast their locations, IDs and types
+  let bubbles-to-report (list "bubbles" [(list who xcor ycor heading)] of known-bubbles)
+  let urchins-to-report (list "urchins" [(list who xcor ycor heading)] of known-urchins)
+  
+  broadcast-to known-divers 
+    add-content 
+      (list 
+        (list "my data" 
+          (list "location" xcor ycor) 
+          (list "heading" heading) 
+          (list "health" health) 
+          (list "oxygen" oxygen))
+        (list "bubbles" 
+          bubbles-to-report)
+        (list "urchins"
+          urchins-to-report))
+    create-message "inform"
+  
+  ;;; IF the agent sees other divers
+  ;;; THEN broadcast their locations, IDs and types
+end
+
+
+
+
+
+
+
+
+to add-to-act-box [ priority command rule-name ]
+  set actions-box lput (list priority command rule-name) actions-box
+end
+
+to-report best-loc-near-target [ targetx targety positions ]
+  ;;; TODO
+end
+
+to-report perc-current-oxygen [ agent-id ]
+  report [oxygen] of diver agent-id
+end
+
+to-report perc-current-health [ agent-id ]
+  report [health] of diver agent-id
+end
+
+to-report perc-stored-gambuzinos [ agent-id ]
+  report [stored] of diver agent-id
+end
+
+to-report perc-captured-gambuzinos [ agent-id ]
+  report [captured] of diver agent-id
+end
+
+to-report perc-visible-agents [ max-distance max-angle agent-type ]
+  let myID who
+  report (agent-type in-cone max-distance max-angle) with [who != myID]
+end
+
+to-report perc-emotional-state [ agent-id ]
+  ;;; TODO
+end
+
+to-report perc-stinged-by [ agent-id ]
+  ;;; TODO
+end
+
+to-report perc-received-help [ ]
+  ;;; TODO
+end
+
+to-report perc-current-iteration
+  report iteration
+end
+
+
+to init-bubbles [ n ]
+  create-bubbles n [
+        set color white
+        setxy random-pxcor random-pycor
+    ]
+end
+
+to init-gambuzinos [ n ]
+    create-gambuzinos n [
+        set hit-by (list)
+        set attacked-by (list)
+
+        set color cyan
+        setxy random-pxcor random-pycor
+        ;;set label (word "g" who)
+    ]
+end
+
+to init-urchins [ n ]
+  create-urchins n [
+        set hit-by (list)
+        set attacked-by (list)
+
+        set color red
+        setxy random-pxcor random-pycor
+        ;;set label (word "u" who)
+    ]
+end
+
+to init-divers [ n ]
+  create-divers n [
+
+        set health 100
+        set oxygen 100
+        set captured 0
+        set stored 0
+        set killed 0
+        set actions-box []
+        set hit-by []
+        set attacked-by []
+        set known-urchins (turtle-set)
+        set known-divers (turtle-set)
+        set known-bubbles (turtle-set)
+        set known-gambuzinos (turtle-set)
+        set incoming-queue []
+
+        set color green
+        setxy random-pxcor random-pycor
+        set label (word health " | " precision oxygen 5)
+    ]
+end
+
+
+to listen-to-messages
+  let msg 0
+  let performative 0
+  while [not empty? incoming-queue] [
+    set msg get-message
+    set performative get-performative msg
+    if performative = "inform" [
+      ;; TODO
+    ]
+  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-531
+423
 12
-1230
+1122
 654
 26
 23
@@ -335,25 +677,25 @@ ticks
 30.0
 
 SLIDER
-20
-521
-266
-554
+1135
+416
+1381
+449
 hit-probability
 hit-probability
 0
 1
-0.05
+0.1
 0.01
 1
 NIL
 HORIZONTAL
 
 INPUTBOX
-89
-250
-252
-310
+7
+239
+170
+299
 max-iterations
 1000
 1
@@ -361,21 +703,21 @@ max-iterations
 Number
 
 MONITOR
-261
-250
-384
-295
+179
+239
+302
+284
 Current Iteration
-current-iteration
+perc-current-iteration
 17
 1
 11
 
 SLIDER
-20
-632
-266
-665
+1135
+527
+1381
+560
 bubbles-creation-probability
 bubbles-creation-probability
 0
@@ -387,10 +729,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-87
-422
-160
-455
+5
+411
+78
+444
 NIL
 setup
 NIL
@@ -404,27 +746,12 @@ NIL
 1
 
 SLIDER
-20
-559
-266
-592
+1135
+454
+1381
+487
 urchins-creation-probability
 urchins-creation-probability
-0
-1
-0.1
-0.01
-1
-NIL
-HORIZONTAL
-
-SLIDER
-20
-596
-266
-629
-gambuzino-creation-probability
-gambuzino-creation-probability
 0
 1
 0.2
@@ -433,11 +760,26 @@ gambuzino-creation-probability
 NIL
 HORIZONTAL
 
+SLIDER
+1135
+491
+1425
+524
+gambuzinos-creation-probability
+gambuzinos-creation-probability
+0
+1
+0.1
+0.01
+1
+NIL
+HORIZONTAL
+
 INPUTBOX
-393
-48
-492
-108
+311
+37
+410
+97
 initial-bubbles
 20
 1
@@ -445,10 +787,10 @@ initial-bubbles
 Number
 
 INPUTBOX
-191
-48
-290
-108
+109
+37
+208
+97
 initial-divers
 10
 1
@@ -456,32 +798,32 @@ initial-divers
 Number
 
 INPUTBOX
-90
-48
-189
-108
+8
+37
+107
+97
 initial-gambuzinos
-50
+10
 1
 0
 Number
 
 INPUTBOX
-292
-48
-391
-108
+210
+37
+309
+97
 initial-urchins
-40
+80
 1
 0
 Number
 
 INPUTBOX
-244
-420
-405
-480
+162
+409
+323
+469
 rseed
 10
 1
@@ -489,10 +831,10 @@ rseed
 Number
 
 INPUTBOX
-186
-148
-281
-208
+104
+137
+199
+197
 visibility-distance
 10
 1
@@ -500,10 +842,10 @@ visibility-distance
 Number
 
 INPUTBOX
-283
-148
-378
-208
+201
+137
+296
+197
 comm-distance
 6
 1
@@ -511,10 +853,10 @@ comm-distance
 Number
 
 INPUTBOX
-89
-148
-185
-208
+7
+137
+103
+197
 fire-distance
 3
 1
@@ -522,103 +864,103 @@ fire-distance
 Number
 
 TEXTBOX
-20
-493
-111
-511
+1138
+394
+1229
+412
 Probabilities
 12
 0.0
 1
 
 TEXTBOX
-92
-21
-242
-39
+10
+10
+160
+28
 Initial Quantities
 12
 0.0
 1
 
 TEXTBOX
-90
-123
-240
-141
+8
+112
+158
+130
 Action/Event Distances
 12
 0.0
 1
 
 TEXTBOX
-92
-221
-242
-239
+10
+210
+160
+228
 Iterations
 12
 0.0
 1
 
 TEXTBOX
-89
-320
-239
-338
+7
+309
+157
+327
 Speeds
 12
 0.0
 1
 
 TEXTBOX
-283
-495
-433
-513
+10
+469
+160
+487
 Other
 12
 0.0
 1
 
 INPUTBOX
-89
-340
-190
-400
+7
+329
+108
+389
 diver-speed
-1
+0.5
 1
 0
 Number
 
 INPUTBOX
-192
-340
-293
-400
+110
+329
+211
+389
 gambuzino-speed
-0.25
+0.2
 1
 0
 Number
 
 INPUTBOX
-295
-340
-397
-400
+213
+329
+315
+389
 urchin-speed
-0.25
+0.2
 1
 0
 Number
 
 INPUTBOX
-280
-518
-441
-578
+7
+492
+168
+552
 oxygen-loss-per-iteration
 0.5
 1
@@ -626,13 +968,13 @@ oxygen-loss-per-iteration
 Number
 
 BUTTON
-165
-422
-228
-455
+83
+411
+146
+444
 go
 go
-T
+NIL
 1
 T
 OBSERVER
@@ -643,10 +985,10 @@ NIL
 1
 
 PLOT
-1254
-10
-1662
-187
+1129
+12
+1537
+189
 Number of turtles
 iteration
 nº
@@ -664,10 +1006,10 @@ PENS
 "bubbles" 1.0 0 -955883 true "" "plot count bubbles"
 
 PLOT
-1254
-191
-1663
-365
+1129
+193
+1538
+367
 Captured / Killed
 iteration
 nº
@@ -679,7 +1021,7 @@ true
 true
 "" ""
 PENS
-"gambuzinos" 1.0 0 -16777216 true "" "plot reduce + [captured] of divers"
+"gambuzinos" 1.0 0 -16777216 true "" "plot reduce + [stored] of divers"
 
 @#$#@#$#@
 ## WHAT IS IT?
