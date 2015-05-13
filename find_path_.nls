@@ -1,0 +1,102 @@
+to-report create-node [ content parent-content cost-from-parent]
+  ; (list (list HEALTH OXYGEN FU FB CONTENT) (list HEUR COST COST-FROM-PARENT) PARENT-CONTENT)
+  report (list (list oxygen health 0 0 content) (list -1 -1 cost-from-parent) parent-content)
+end
+
+to-report get-node-parent [ node ] 
+	report (last node)
+end
+
+to-report get-node-x [ node ]
+  report item 0 last get-node-content node
+end
+
+to-report get-node-y [ node ]
+  report item 1 last get-node-content node
+end
+
+to-report get-node-health [ node ]
+  report item 0 get-node-content node
+end
+
+to-report get-node-oxygen [ node ]
+  report item 1 get-node-content node
+end
+
+to-report get-cost-from-parent [ node ]
+  report (item 2 (item 1 node))
+end
+
+to-report get-node-content [ node ]
+	report (first node)
+end
+
+to-report get-node-H [ node objective ]
+  
+  if (item 0 item 1 node) > -1 [ report (item 0 item 1 node) ]
+
+	let coords0 (get-node-content node)
+	let coords1 objective
+	let P0 (patch (get-node-x node) (get-node-y node))
+	let P1 (patch (item 0 coords1) (item 1 coords1))
+	let P-D 0
+	ask P0 [ 
+		set P-D (distance P1)
+	]
+
+  set node (replace-item 1 node P-D)
+	report P-D
+end
+
+to-report get-node-C [ node ]
+  
+  if empty? (get-node-parent node) [ report 0 ]
+  
+  if (item 1 item 1 node) > -1 [ report (item 1 item 1 node) ]
+
+	let coords (get-node-content node)
+	let P0 (patch (get-node-x node) (get-node-y node))
+	
+	let urchins-count 0
+	let bubbles-count 0
+
+  let fu 1
+  let fb 1
+  
+	ask P0 [
+		set urchins-count (sum [count urchins-here] of neighbors) * (fu / 2) + ([count urchins-here] of self ) * fu
+		set bubbles-count (sum [count bubbles-here] of neighbors) * (fb / 2) + ([count bubbles-here] of self ) * fb
+    set plabel urchins-count
+	]
+
+  let cost-val oxygen-loss-per-iteration + (max (list 1 (fu * (urchins-count * (100 - health)))) / (fb * max (list 1 (bubbles-count * (100 - oxygen))))) + (get-cost-from-parent node)
+  ;let cost-val 1 + (get-cost-from-parent node)
+  ;print cost-val
+  set node (replace-item 2 node cost-val)
+	report cost-val
+end
+
+
+
+to-report get-node-neighbors [ current-node objective-node ]
+  
+	let coords (get-node-content current-node)
+	let P0 patch (item 0 last coords) (item 1 last coords)
+	let neighbors-list (list)
+  let pos-list (list)
+	
+	ask [neighbors] of P0 [
+		let X [pxcor] of self
+		let Y [pycor] of self
+		let pos (list X Y)
+    set pos-list (lput pos pos-list)
+    set pcolor orange
+  ]
+
+  foreach pos-list [
+    let neighbor-node (create-node ?1 (get-node-content current-node) (get-node-C current-node))
+    set neighbors-list (lput neighbor-node neighbors-list)
+  ]
+	
+	report neighbors-list
+end

@@ -1,0 +1,126 @@
+Desires:
+	("survive" 	CURRENT-PRIORITY-VALUE)
+	if low-oxygen [report (list "get-oxygen")]
+	if low-health [report (list )]
+	report (list "attack")
+
+	("help" 	CURRENT-PRIORITY-VALUE)
+
+
+	("hunt" 	CURRENT-PRIORITY-VALUE)
+
+to-report options B I
+	let desires (list) 
+	set desires lput ["survive" get-survive-score]
+	set desires lput ["help"	get-help-score]
+	set desires lput ["hunt"	get-survive-score]
+	report desires
+end
+
+
+Intentions:
+	("attack"     X)
+		Until: ('X' morrer) OU (não conseguir obter o paradeiro de 'X' por N iterações)
+		Plano:
+			SE conseguir disparar contra 'X' ENTÃO
+				1) Dispara contra 'X'
+			SENÃO SE conseguir ver 'X' ENTÃO
+				SE estiver alinhado com 'X' ENTÃO
+					1) Avança para 'X'.
+				SENÃO 
+					1) Vira-se para 'X'.
+			SENÂO SE não conseguir ver 'X' ENTÃO
+				SE (conseguir ver a última posição conhecida de 'X') E (essa crença tenha sido criada/actualizada na iteração anterior) ENTÃO
+					SE estiver alinhado com 'X' ENTÃO
+						1) Avança para 'X'.
+					SENÃO 
+						1) Vira-se para 'X'.
+				SENÃO SE (conseguir ver a última posição conhecida de 'X') ENTÃO
+					1) Pergunta a outros agentes pela localização de 'X.
+			
+
+
+	("escape"     X)
+		Until: (Não conhecer a localização de X) OU (X estar morto)
+		Plano:
+			1) Vira-se no sentido contrário do vector até X.
+			2) Avança em frente.
+			3) Até já não o detectar.
+
+
+
+	("follow"     X		D)
+		Until: N/A
+		Plano: 
+			SE souber da localização de X ENTÃO
+				SE está a uma distância de 'X' superior a 'D' ENTÃO
+					SE está alinhado com 'X' ENTÃO 
+						Avança para 'X'
+					SENÃO
+						Vira-se para 'X'
+				SENÃO 
+					N/A
+			SENÃO 
+				Perguntar a outros agentes pela localização de 'X'
+
+	to plan-follow [ target-id min-distance ]
+		let my-id who
+		let known-x get-belief (word "Known(_," target-id ",X,Y,_)") (list "X" "Y")
+		ifelse known-x = false [
+			let x0 xcor
+			let y0 ycor
+			let x1 (item 0 known-x)
+			let y1 (item 1 known-x)
+			let distance (sqrt ( (x1 - x0) ^ 2 + (y1 - y0) ^ 2 ) )
+			if distance > min-distance [
+				ifelse aligned-with who [
+					act-move-forward who (min (list diver-speed distance))
+				] [
+					act-face-to my-id other-id
+				]
+			]
+		] [
+			;;TODO: ask other agents for 'X' location.
+		]
+	end
+
+
+
+	("help"       X)
+		Until: N/A
+		Plano:
+			1) Perguntar a X o que precisa.
+			2) Verificar se pode oferecer o que X precisa.
+			3) Dar a resposta a X
+
+
+
+	("search-for-class" C)
+		Until: Encontrar itens da class C
+		Plano: 
+			SE conhece a localização de itens da classe 'C' ENTÃO
+				1) Rodar para encarar um item da classe 'C'.
+				2) Avançar para o item da classe 'C'.
+			SENÃO 
+				1) Perguntar a outros agentes se conhecessem a localização de um item da classe 'C'.
+			
+
+
+	("search-for" I)
+		Until: Encontrar o item 'I'.
+		Plan: 
+			SE conhece a localização do item 'I' ENTÃO
+				1) Rodar para encarar o item 'I'.
+				2) Avançar para o item 'I'.
+			SENÃO
+				1) Perguntar a outros agentes se conhecessem a localização do item 'I'.
+			
+	("get" I)
+		Until: 
+		Plan: 
+			SE 'I' for um gambuzino ENTÃO
+
+			SENÃO 
+				SE 'I' for uma bolha ENTÃO
+					1) Calcula (melhor) caminho/plano para chegar à bolha.
+					2) Corre cada um dos passos do caminho/plano.

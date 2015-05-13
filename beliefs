@@ -1,0 +1,13 @@
+Beliefs:
+	
+	<> Agent(TTL, Id)
+	<> AgentType(TTL, Id, Type)
+	<> Health(TTL, Id, Health)
+	<> Oxygen(TTL, Id, Health)
+	<> Known(TTL, Id, X, Y, Z)
+	<> Visible(TTL, Id, X, Y, Z)
+	<> Emotion(TTL, Id, Name, Intensity, Object)
+
+Rules:
+
+	Known(TTL, Id, X, Y, Z) :- Visible(TTL, Id, X, Y, Z)

@@ -1,0 +1,101 @@
+to-report get-percepts
+	let new-percepts table:make
+
+	table:put new-percepts "oxygen" oxygen
+	table:put new-percepts "health" health
+	table:put new-percepts "captured" captured
+
+	set visible-urchins perc-visible-agents visibility-distance 180 urchins
+	set visible-divers  perc-visible-agents visibility-distance 180 divers
+	set visible-bubbles perc-visible-agents visibility-distance 180 bubbles
+	set visible-divers  perc-visible-agents visibility-distance 180 divers
+
+	table:put new-percepts ""
+end
+
+
+to-report beliefs-revision [ oldB oldP ]
+
+	;TODO: Remove expired (TTL=0) beliefs.
+
+	if oxygen < THRESHOLD1 [ add-belief "low-oxygen" 1 ]
+
+	if health < THRESHOLD2 [ add-belief "low-health" 1 ]
+
+	if (count captured-in-previous) > 0 [ add-belief "newly-captured" 1 (count captured-in-previous) ]
+
+	if (count hit-by) > 0 or (count attacked-by) > 0 [ add-belief "in-danger" 1 ]
+
+	if (count hit-by) > 0 [ add-belief "under-attack" 1 (count hit-by) ]
+
+	if (count known-bubbles) = 0 [ add-belief "no-bubbles" 1 ]
+
+	if (count known-gambuzinos) = 0 [ add-belief "no-gambuzinos" 1 ]
+
+	if (count known-urchins) = 0 [ add-belief "no-enemies" 1 ]
+
+	ifelse low-health [ 
+		if (count visible-divers) >= (count visible-urchins) [
+			foreach visible-urchins [
+				add-belief [who] of ?1
+			]
+		]
+		; TODO: adicionar a crença que não consegue derrotar os ouriços que conseguir ver.
+	] [
+		; TODO: caso o número de ouriços 
+	]
+
+	foreach incoming-queue [ add-belief "message-received" 1 ?1 ]
+
+	ask visible-divers [
+		let diver-id who
+		foreach emotions [
+			let name (item 0 ?1)
+			let intensity (item 1 ?1)
+			let object (item 2 ?1) 
+			let TTL 3
+			add-belief "Emotion" (list 3 name intensity object)
+		] 
+	]
+
+end
+
+
+to process-message [ M ]
+	let performative (get-performative M)
+	let content 	 (get-content M)
+
+	if performative = "inform" [
+		let content-type (item 0 content)
+		if content-type = "positions" [
+			;;; ["positions" [ID,TYPE,X,Y] ... [ID,TYPE,X,Y]]
+			foreach (bf content) [
+				let id 	 (item 0 ?1)
+				let type (item 1 ?1)
+				let x 	 (item 2 ?1)
+				let y 	 (item 3 ?1)
+				;let z 	 (item 4 ?1)
+				add-belief (word "Known" type "(" id "," x "," y ")")
+			]
+		]
+		if content-type = "status" [
+			;;; ["status" [ID,HEALTH,OXYGEN] ... [ID,HEALTH,OXYGEN]]
+			foreach (bf content) [
+				let id (item 0 ?1)
+				let health  (item 1 ?1)
+				let oxygen  (item 2 ?1)
+				add-belief (work "Status(" id "," health "," oxygen ")")
+			]
+		]
+	]
+
+	if performative = "ask" [
+		;TODO: check if the agent should answer.
+		let content-type (item 0 content)
+	]
+
+	if performative = "request" [
+		;TODO: negotiation process.
+	]
+
+end

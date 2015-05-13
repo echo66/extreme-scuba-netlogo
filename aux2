@@ -1,0 +1,23 @@
+[[X, Y], TurtleID, HELP-ACTION-DESCRIPTION]
+
+	HELP-ACTION-DESCRIPTION = ["offered" WHAT QUANTITY] | ["told" WHAT] | ["fired-at" TurtleID]
+
+[
+	BELIEF-NAME, 
+	[TTL CreatorID NUMBER-OF-VARS], 
+	[VAR-NAME-1, VAR-VALUE-1], 
+	[VAR-NAME-2, VAR-VALUE-2], 
+	...
+	[VAR-NAME-N, VAR-VALUE-N]
+]
+
+
+Message structure:
+{
+	id: MESSAGE-ID, 
+	speech-act: inform/request/accept/deny,
+	in-reply-to: MESSAGE-ID, 
+	sender: AGENT-ID, 
+	receiver: AGENT-ID, 
+	content: ...
+}

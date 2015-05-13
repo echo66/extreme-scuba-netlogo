@@ -1,0 +1,100 @@
+[
+	B ;;; Beliefs
+	I ;;; Intention(s)
+	P ;;; Percepts
+	D ;;; Desires
+	current-plan
+	current-bdi-phase
+]
+
+to bdi-iteration
+	if (current-state = 0) [
+		;;; Not initialized
+	]
+	if (current-state = 1) [
+		;;; Initialized
+	]
+	if (current-state = 2) [
+		;;; Main Cycle
+	]
+	if (current-state = 3) [
+		;;; Plan Execution Cycle
+	]
+
+
+end
+
+
+to bdi-init B0 I0
+	set B B0
+	set I I0
+end
+
+to bdi-cycle
+	set P (get-percepts)
+	set B (beliefs-revision B P)
+	set D (options B I)
+	set I (filter B D I)
+	set current-plan (build-plan B I A)
+	while [not ((empty? current-plan) or (succeeded? I B) or (impossible? I B))] [
+
+		let act (first current-plan)
+		execute-action act
+		set current-plan but-first current-plan
+
+		set P (get-percepts)
+		set B (beliefs-revision B P)
+
+		if (reconsider? I B) [
+			set D (options B I)
+			set I (filter B D I)
+		]
+
+		if not (sound? current-plan I B) [
+			set current-plan (build-plan B I A)
+		]
+	]
+end
+
+to bdi-main-cycle 
+	set P (run get-percepts)
+	set B (run beliefs-revision B P)
+	set D (run options B I)
+	set I (run filter B D I)
+	set current-plan (run build-plan B I A)
+end
+
+
+to bdi-plan-execution-cycle
+	let act (first current-plan)
+	run act
+	set current-plan but-first current-plan
+
+	set P (run get-percepts)
+	set B (run beliefs-revision B P)
+
+	if (run reconsider? I B) [
+		set D (run options B I)
+		set I (run filter B D I)
+	]
+
+	if not (run sound? current-plan I B) [
+		set current-plan (run build-plan B I A)
+	]
+end
+
+
+;to get-percepts
+;end
+
+;to beliefs-revision oB oP
+;end
+
+;to options oB oI
+;end
+
+;to filter oB oD oI
+;end
+
+;to build-plan oB oI oA
+;end

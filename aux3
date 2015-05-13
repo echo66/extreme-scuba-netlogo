@@ -1,0 +1,104 @@
+  extensions [netprologo]
+
+  globals [ R ]
+
+
+  to go
+    
+    netprologo:initialize
+    set R netprologo:create-interpreter
+    
+    let A ""
+
+    set A netprologo:run-once R "assertz(meufacto(1,2))"
+    set A netprologo:run-once R "assertz(meufacto(10,3001))"
+    set A netprologo:run-once R "assertz(meufacto(10,4))"
+    set A netprologo:run-once R "retract(meufacto(D,3001))"
+    
+    print "Querying"
+    set A netprologo:run-first R "meufacto(E,D)"
+    print (word "E=" (netprologo:dereference-var R "E") " | " "D=" (netprologo:dereference-var R "D"))
+    
+    while [netprologo:has-next R] [
+      set A netprologo:run-next R
+       print (word "E=" (netprologo:dereference-var R "E") " | " "D=" (netprologo:dereference-var R "D"))
+    ]
+    
+  end
+
+
+
+
+to clean-expired-belief-triples [ belief-base ] 
+  let A ""
+  set A netprologo:run-first belief-base 
+end
+
+
+to-report add-belief-triple [ belief-base S P O TTL]
+
+  (word P "(" S ", " O  ", " TTL ")")
+
+  report netprologo:run-once belief-base (word "assertz(" pred ")")
+
+end
+
+to-report remove-belief [ belief-base predicate-l ]
+  
+  let pred build-predicate-str predicate-l
+
+end
+
+to-report query [ belief-base query ]
+
+  ;TODO
+
+end
+
+to-report has-belief [ belief-base query ]
+
+  ;TODO
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+to clean-expired-beliefs 
+
+end
+
+to add-belief [ pred-name pred-args-list]
+
+end
+
+to has-belief [  ]
+
+end
+
+to get-belief [ query vars-list]
+
+end
+
+to remove-belief [  ]
+
+end
