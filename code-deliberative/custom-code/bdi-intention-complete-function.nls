@@ -1,0 +1,27 @@
+to-report intention-complete? [ beliefs intention ]
+  let name (item 0 intention)
+  
+  if name = "gather-oxygen" [
+    ;TODO
+  ]
+  
+  if name = "attack-urchin" [
+    ;TODO
+  ]
+  
+  if name = "escape-urchin" [ 
+    ;TODO
+  ]
+  
+  if name = "hunt" [
+    ;TODO
+  ]
+  
+  if name = "follow" [
+    ;TODO
+  ]
+  
+  if name = "give" [
+    ;TODO
+  ]
+end

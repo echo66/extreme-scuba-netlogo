@@ -1,0 +1,37 @@
+to CYCLE-DIVERS
+
+  ;;; COLLECT VISIBLE ENTITIES
+  set visible-urchins (perc-visible-agents visibility-distance 180 urchins)
+  set visible-divers (perc-visible-agents visibility-distance 180 divers)
+  set visible-bubbles (perc-visible-agents visibility-distance 180 bubbles)
+  set visible-gambuzinos (perc-visible-agents visibility-distance 180 gambuzinos)
+  
+  set known-urchins (perc-visible-agents visibility-distance 180 urchins)
+  set known-divers (perc-visible-agents visibility-distance 180 divers)
+  set known-bubbles (perc-visible-agents visibility-distance 180 bubbles)
+  set known-gambuzinos (perc-visible-agents visibility-distance 180 gambuzinos)
+  
+  if agent-architecture = "reactive" [
+    diver-reactive-cycle
+  ]
+  if agent-architecture = "deliberative" [
+    
+    set actions-box (list)
+    
+    print (word "CYCLE-DIVERS | actions-box: " actions-box)
+    bdi##cycle
+
+    show actions-box
+    ;print current-plan
+    if (length actions-box) > 0 [
+      let selected-action (item 0 (sort-by [(item 0 ?1) > (item 0 ?2)] actions-box))
+      set iteration-actions lput (item 1 selected-action) iteration-actions
+    ]
+  ]
+  
+  
+  ;mark-areas
+  
+  set label (word health " | " precision oxygen 5)
+  
+end

@@ -1,0 +1,10 @@
+to init-gambuzinos [ n ]
+    create-gambuzinos n [
+        set hit-by (list)
+        set attacked-by (list)
+        set agent-max-speed gambuzino-speed
+        set color cyan
+        setxy random-pxcor random-pycor
+        ;;set label (word "g" who)
+    ]
+end

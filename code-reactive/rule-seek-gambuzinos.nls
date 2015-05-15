@@ -1,0 +1,50 @@
+to rule-seek-gambuzinos
+  
+  let diver-id who
+  let rule-name "rule-seek-gambuzinos"
+    
+  ifelse count visible-gambuzinos > 0 [
+    ;;print (word "Diver " diver-id " sees " (count visible-gambuzinos) " gambuzinos")
+    
+    let nearest-gambuzino min-one-of visible-gambuzinos [distance myself]
+    let gambuzino-id ([who] of nearest-gambuzino)
+    
+    ifelse (distance nearest-gambuzino) <= fire-distance [
+      
+      if (([xcor] of nearest-gambuzino) = xcor) and (([ycor] of nearest-gambuzino) = ycor) [
+        let command-to-add (word "act-fire-harpoon " diver-id " " gambuzino-id)
+        add-to-act-box (100) command-to-add rule-name
+        stop
+      ]
+      
+      ifelse (subtract-headings (heading) (towards nearest-gambuzino)) > 70 
+        [ 
+          let command-to-add (word "act-face-to " who " " ([who] of nearest-gambuzino))
+          add-to-act-box (100 / (max (list 0.5 (distance nearest-gambuzino)))) command-to-add rule-name
+          ;act-face-to who ([who] of nearest-gambuzino)
+          stop
+        ] [ 
+          let command-to-add (word "act-fire-harpoon " diver-id " " gambuzino-id)
+          add-to-act-box (100 / (max (list 0.5 (distance nearest-gambuzino)))) command-to-add rule-name
+          ;act-fire-harpoon diver-id gambuzino-id 
+          stop
+        ]
+    ] [
+      ;;print (word "Diver " who " is moving to capture gambuzino "  gambuzino-id)
+      ifelse (subtract-headings (heading) (towards nearest-gambuzino)) > 45 
+        [ 
+          let command-to-add (word "act-face-to " who " " ([who] of nearest-gambuzino))
+          add-to-act-box (100 / (max (list 0.5 (distance nearest-gambuzino)))) command-to-add rule-name
+          ;act-face-to who ([who] of nearest-gambuzino)
+          stop
+        ] [ 
+          let command-to-add (word "act-move-forward " who " " agent-max-speed)
+          add-to-act-box (100 / (max (list 0.5 (distance nearest-gambuzino)))) command-to-add rule-name
+          ;act-move-forward who agent-max-speed 
+          stop
+        ]
+    ]
+  ] [
+    ;;;TODO: broadcast message requesting gambuzinos locations
+  ]
+end

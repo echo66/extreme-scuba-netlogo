@@ -1,0 +1,26 @@
+to rule-share-visible-data
+  let rule-name "rule-broadcast-visible-data"
+  ;;; IF the agent sees bubbles or urchins
+  ;;; THEN broadcast their locations, IDs and types
+  let bubbles-to-report (list "bubbles" [(list who xcor ycor heading)] of visible-bubbles)
+  let urchins-to-report (list "urchins" [(list who xcor ycor heading)] of visible-urchins)
+  
+  broadcast-to visible-divers 
+    add-content 
+      (list 
+        (list "my data" 
+          (list "location" xcor ycor) 
+          (list "heading" heading) 
+          (list "health" health) 
+          (list "oxygen" oxygen))
+        (list "bubbles" 
+          bubbles-to-report)
+        (list "urchins"
+          urchins-to-report))
+    create-message "inform"
+    
+    ;TODO: send message
+  
+  ;;; IF the agent sees other divers
+  ;;; THEN broadcast their locations, IDs and types
+end

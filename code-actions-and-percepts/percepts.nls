@@ -1,0 +1,36 @@
+to-report perc-current-oxygen [ agent-id ]
+  report [oxygen] of diver agent-id
+end
+
+to-report perc-current-health [ agent-id ]
+  report [health] of diver agent-id
+end
+
+to-report perc-stored-gambuzinos [ agent-id ]
+  report [stored] of diver agent-id
+end
+
+to-report perc-captured-gambuzinos [ agent-id ]
+  report [captured] of diver agent-id
+end
+
+to-report perc-visible-agents [ max-distance max-angle agent-type ]
+  let myID who
+  report (agent-type in-cone max-distance max-angle) with [who != myID]
+end
+
+to-report perc-emotional-state [ agent-id ]
+  ;;; TODO
+end
+
+to-report perc-stinged-by [ agent-id ]
+  ;;; TODO
+end
+
+to-report perc-received-help [ ]
+  ;;; TODO
+end
+
+to-report perc-current-iteration
+  report iteration
+end

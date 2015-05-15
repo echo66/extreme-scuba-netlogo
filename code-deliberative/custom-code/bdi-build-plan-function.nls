@@ -1,0 +1,44 @@
+to-report build-plan-function [ beliefs intention ]
+  let name (item 0 intention)
+  let actions (list)
+  
+  print "build-plan-function"
+  if name = "gather-oxygen" [
+    create-gather-oxygen-plan
+  ]
+  
+  if name = "attack-urchin" [
+    ;TODO
+  ]
+  
+  if name = "escape-urchin" [ 
+    ;TODO
+  ]
+  
+  if name = "hunt" [
+    let gambuzino-id (item 0 item 1 intention)
+    create-hunt-gambuzino-plan gambuzino-id
+  ]
+  
+  if name = "follow" [
+    ;TODO
+  ]
+  
+  if name = "give" [
+    ;TODO
+  ]
+  
+  report current-plan
+end
+
+
+to add-path-plan [ pos0 pos1 ]
+  let path (find-path pos0 pos1)
+  foreach path [
+    let x (item 0 ?)
+    let y (item 1 ?)
+    let command-to-add (word "act-move-to " who " (list " x " " y ") 0" )
+    let act (task [add-to-act-box 0 (item 0 ?) ""])
+    add-step act (list command-to-add) (task [true])
+  ]
+end

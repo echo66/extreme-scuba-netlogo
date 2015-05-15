@@ -1,0 +1,29 @@
+to rule-seek-oxygen
+  
+  let rule-name "rule-seek-oxygen"
+  
+  ifelse oxygen < 30 and (count visible-bubbles) > 0 [
+    ;;print (word "Diver " who "needs oxygen, is turning to the nearest bubble and moving towards it")
+    let nearest-bubble min-one-of visible-bubbles [distance myself]
+    
+    ifelse (subtract-headings heading (towards nearest-bubble)) != 0 [
+      let command-to-add (word "act-face-to " who " " ([who] of nearest-bubble))
+      add-to-act-box (min (list (100 - oxygen) 50)) command-to-add rule-name
+      ;act-face-to who ([who] of nearest-bubble)
+    ] [
+      let command-to-add (word "act-move-forward " who " " (min (list agent-max-speed (distance nearest-bubble))))
+      add-to-act-box (min (list (100 - oxygen) 50)) command-to-add rule-name
+      ;act-move-forward who agent-max-speed
+    ]
+  ] [
+    ifelse oxygen < 30 [
+      ; ;;print (word "Diver " who " needs oxygen and is broadcasting a message requesting bubble locations.")
+      ; TODO: broadcast message requesting the locations of visible bubbles
+      ; Meanwhile, just move randomly.
+      ;act-move-randomly who
+    ] [
+      ;act-move-randomly who
+    ]
+  ]
+  
+end

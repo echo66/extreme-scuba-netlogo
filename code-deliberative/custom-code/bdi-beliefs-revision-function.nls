@@ -1,0 +1,62 @@
+to-report beliefs-revision-function [ beliefs percepts ]
+
+  ;TODO: Remove expired (TTL=0) beliefs.
+  clean-expired-beliefs 
+  
+  if can-communicate? = true [
+    foreach incoming-queue [ process-message ?1 ]
+  ]
+  
+  let THRESHOLD_OXYGEN 20
+  let THRESHOLD_HEALTH 20
+  
+  add-belief "health" 1 (list health)
+  add-belief "oxygen" 1 (list oxygen)
+
+  if oxygen < THRESHOLD_OXYGEN [ add-belief  "low_oxygen" 1 (list) ]
+
+  if health < THRESHOLD_HEALTH [ add-belief  "low_health" 1 (list) ]
+  
+  if oxygen < THRESHOLD_OXYGEN and health < THRESHOLD_HEALTH [ add-belief  "low_survival_rate" 1  (list) ]
+
+  if captured-in-previous-iteration > 0 [ add-belief  "got_new_gambuzinos" 1 (list captured-in-previous-iteration) ]
+
+  if (length hit-by) > 0 or (length attacked-by) > 0 [ add-belief  "under_attack" 1 (list) ]
+
+  if (length hit-by) > 0 [ add-belief  "damage_suffered" 1 (list ((length hit-by) * 10) ) ]
+
+  if (count known-bubbles) = 0 [ add-belief  "no_bubbles" 1 (list) ]
+
+  if (count known-gambuzinos) = 0 [ add-belief  "no_gambuzinos" 1 (list) ]
+
+  if (count known-urchins) = 0 [ add-belief  "no_enemies" 1 (list) ]
+
+  ifelse health < THRESHOLD_HEALTH [ 
+    if (count visible-divers) >= (count visible-urchins) [
+      ; TODO: adicionar a cren�a que consegue derrotar os ouri�os que conseguir ver.
+    ]
+    ; TODO: adicionar a cren�a que n�o consegue derrotar os ouri�os que conseguir ver.
+  ] [
+    ; TODO: caso o n�mero de ouri�os 
+  ]
+
+  ask visible-divers [
+    let diver-id who
+    if use-emotions? = true [
+      foreach emotions [
+        let name (item 0 ?1)
+        let intensity (item 1 ?1)
+        let object (item 2 ?1) 
+        let TTL 3
+        add-belief "emotion" TTL (list name intensity object)
+      ] 
+    ]
+  ]
+  
+  if use-emotions? = true [
+    (run task affective-beliefs-revision-fn beliefs percepts)
+  ]
+  
+  report beliefs
+
+end

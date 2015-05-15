@@ -1,0 +1,36 @@
+to rule-deal-with-urchins
+  
+  let rule-name "rule-deal-with-urchins"
+  let nearest-gambuzino min-one-of visible-gambuzinos [distance myself]
+  let priority 0
+  ifelse nearest-gambuzino = nobody [
+    let nearest-urchin min-one-of visible-urchins [distance myself]
+    if nearest-urchin != nobody [
+      set priority (100 / (distance nearest-urchin))
+    ]
+  ] [
+    set priority (100 * (max (list 0.5 (distance nearest-gambuzino))))
+  ]
+  
+  if health < (count visible-urchins) and (count visible-divers) = 0 [
+    let command-to-add (word "act-rotate " who " " 90)
+    add-to-act-box priority command-to-add rule-name
+    ;act-rotate who 90
+    stop
+  ]
+  if health < (count visible-urchins) and (count visible-divers) >= (count visible-urchins) [
+    let nearest-urchin min-one-of visible-urchins [distance myself]
+    let command-to-add (word "act-fire-harpoon " who " " ([who] of nearest-urchin))
+    add-to-act-box priority command-to-add rule-name
+    ;act-fire-harpoon who ([who] of nearest-urchin)
+    stop
+  ]
+  if health > (count visible-urchins) and (count visible-urchins) > 0 [
+    let nearest-urchin min-one-of visible-urchins [distance myself]
+    let command-to-add (word "act-fire-harpoon " who " " ([who] of nearest-urchin))
+    add-to-act-box priority command-to-add rule-name
+    ;act-fire-harpoon who ([who] of nearest-urchin)
+    stop
+  ]
+  
+end

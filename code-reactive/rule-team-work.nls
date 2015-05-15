@@ -1,0 +1,29 @@
+to rule-team-work
+  let rule-name "rule-team-work"
+
+  ;;; IF the agent has very low health level (e.g. 10) AND has a neighbor with higher health level THEN
+  ;;;  OFFER A CAPTURED GAMBUZINOS TO THE OTHER AGENT
+  if (health < 30 or oxygen < 30) and (count visible-divers) > 0 and stored > 0 [
+    let nearest-diver min-one-of visible-divers [distance myself]
+    if (distance nearest-diver) <= comm-distance [
+      let gambuzinos-to-give ((30 / (min (list health oxygen))) * (max (list stored 10)))
+      let command-to-add (word "act-offer-gambuzinos " who " " ([who] of nearest-diver) " " gambuzinos-to-give)
+      add-to-act-box (100 + (min (list health oxygen))) command-to-add rule-name
+      stop
+    ]
+  ]
+  
+  ;;; IF there is a "low survival rate" 
+  ;;;  AND no bubbles are available 
+  ;;; THEN send "all" gambuzinos to agents within comm-distance
+  if health < 20 and oxygen < 10 and (count visible-divers) > 0 and (visible-bubbles) = 0 and stored > 0 [
+    ;; I cannot use this rule, according to the project description (i.e. only one action per iteration).
+    ifelse stored > (count visible-divers) [
+      ;; TODO
+    ] [
+      ;; TODO
+    ]
+  ]
+  
+  
+end

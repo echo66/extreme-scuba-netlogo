@@ -1,0 +1,23 @@
+to diver-reactive-cycle
+
+	set actions-box lput (list 0 (word "act-move-randomly " who) "default") actions-box
+  
+	listen-to-messages
+	
+	;;; FIRE RULES
+	rule-seek-oxygen
+	rule-seek-gambuzinos
+	rule-deal-with-urchins
+	rule-team-work
+	rule-share-visible-data
+
+	;;; RANK & SELECT
+	let selected-action (item 0 (sort-by [(item 0 ?1) > (item 0 ?2)] actions-box))
+
+	;;; RUN SELECTED ACTION
+	;run (item 1 selected-action)
+	set iteration-actions lput (item 1 selected-action) iteration-actions
+
+	;print actions-box
+	set actions-box []
+end

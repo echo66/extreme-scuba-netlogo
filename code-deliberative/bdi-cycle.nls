@@ -1,0 +1,31 @@
+to bdi##cycle 
+  let P (runresult get-percepts-fn)
+  set B (runresult beliefs-revision-fn B P)
+  
+  ;ifelse ((empty? current-plan) or (runresult intention-done-fn? active-intention B) or (runresult intention-impossible-fn? active-intention B)) [
+  ifelse not (empty? current-plan) [
+    show (word "bdi##cycle | CONTINUAR PLANO para a intenção " active-intention)
+    execute-plan-step
+    
+    if (runresult reconsider-fn? active-intention B) [
+      let D (runresult options-fn B active-intention)
+      set active-intention (runresult filter-fn B D active-intention)
+    ]
+
+    if not (runresult sound-fn? current-plan active-intention B) [
+      set current-plan (runresult build-plan-fn B active-intention)
+    ]
+  ] [
+    show (word "bdi##cycle | NOVO PLANO")
+    let D (runresult options-fn B active-intention)
+    set active-intention (runresult filter-fn B D active-intention)
+    set current-plan (runresult build-plan-fn B active-intention)
+    
+    ifelse (length current-plan) > 0 [
+      execute-plan-step
+    ] [ 
+      ;TODO 
+    ]
+  ]
+
+end

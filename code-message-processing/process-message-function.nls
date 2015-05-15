@@ -1,0 +1,16 @@
+to process-message [ M ]
+  let performative (get-performative M)
+  let content    (get-content M)
+
+  ifelse performative = "inform" [
+    process-inform-content content
+  ] [
+    ifelse performative = "ask" [
+      process-ask-content content
+    ][
+      if performative = "request" [
+        process-request-content content
+      ]
+    ]
+  ]
+end

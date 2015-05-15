@@ -10,6 +10,7 @@ globals [
 
   ;;; "iteration-actions": At each iteration, each turtle pushes the chosen action to this list. After all turtles push the chosen actions, the system will iterate through this list and evaluate each action and its impact in the model. This list allows fair model execution due to the fact that Netlogo does not use a true asynchronous and parallel execution of the turtles. This list is used as a "barrier" at the end of each model cycle.
   iteration-actions   
+  
 ]
 
 breed [ divers diver ]
@@ -97,7 +98,7 @@ divers-own [
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
   ;;; Percepts
-  P 
+  ;P 
   
   ;;; Beliefs
   B 
@@ -128,10 +129,18 @@ divers-own [
   options-fn
   
   ; Action -> (list Boolean (list Action ... Action))
-  execute-action-fn
+  ;execute-action-fn
   
   ; Beliefs x Intention -> (list Action ... Action)
   build-plan-fn
+  
+  intention-done-fn?
+  
+  intention-impossible-fn?
+  
+  reconsider-fn?
+  
+  sound-fn?
   
   
   
@@ -151,21 +160,65 @@ divers-own [
   
   ;;; TODO
   affective-beliefs-revision-fn
+  
+  ;;; TODO
+  affective-options-fn
 ]
 gambuzinos-own [ ]
 urchins-own [ ]
 
 
 __includes[
-  ;"init-agents.nls" 
+  
+  ;;; INITIALIZATION CODE
+  "code-initialization/init-divers.nls" 
+  "code-initialization/init-gambuzinos.nls" 
+  "code-initialization/init-bubbles.nls" 
+  "code-initialization/init-urchins.nls" 
+  "code-actions-and-percepts/percepts.nls"
+  
+  ;;; ACTION & PERCEPTION
+  "code-actions-and-percepts/actions.nls"
+  
+  ;;; AGENT CYCLES
+  "code-agent-cycles/cycle-bubbles.nls" 
+  "code-agent-cycles/cycle-divers.nls" 
+  "code-agent-cycles/cycle-gambuzinos.nls" 
+  "code-agent-cycles/cycle-urchins.nls" 
+  
+  ;;; REACTIVE CODE
+  "code-reactive/diver-reactive-cycle.nls"
+  "code-reactive/rule-deal-with-urchins.nls"
+  "code-reactive/rule-seek-gambuzinos.nls"
+  "code-reactive/rule-seek-oxygen.nls"
+  "code-reactive/rule-share-visible-data.nls"
+  "code-reactive/rule-team-work.nls"
+  
+  ;;; DELIBERATIVE CODE 
+  "code-deliberative/beliefs-management.nls"
+  "code-deliberative/bdi-cycle.nls" 
+  "code-deliberative/plans-management.nls" 
+  "code-deliberative/find-path.nls" 
+  "code-deliberative/custom-code/bdi-beliefs-revision-function.nls" 
+  "code-deliberative/custom-code/bdi-build-plan-function.nls" 
+  "code-deliberative/custom-code/bdi-filter-function.nls" 
+  "code-deliberative/custom-code/bdi-intention-complete-function.nls" 
+  "code-deliberative/custom-code/bdi-intention-impossible-function.nls" 
+  "code-deliberative/custom-code/bdi-options-function.nls" 
+  "code-deliberative/custom-code/custom-find-path-functions.nls" 
+  "code-deliberative/custom-code/code-plans/gather-oxygen-plan.nls"
+  "code-deliberative/custom-code/code-plans/hunt-gambuzino-plan.nls"
+  
+  ;;; EMOTIONS CODE
+  "code-emotions/affective-beliefs-revision-function.nls"
+  
+  
+  ;;; MESSAGING CODE
   "extensions/communication.nls" 
-  "find_path.nls" 
-  "find_path_.nls" 
-  "beliefs-management.nls" 
-  ;"CYCLE-URCHINS.nls" 
-  ;"CYCLE-GAMBUZINOS.nls" 
-  ;"CYCLE-BUBBLES.nls" 
-  ;"percepts.nls" 
+  "code-message-processing/process-message-function.nls"
+  "code-message-processing/process-inform-content-function.nls"
+  "code-message-processing/process-ask-content-function.nls"
+  "code-message-processing/process-request-content-function.nls"
 ]
 
 
@@ -188,7 +241,7 @@ to setup
   set-default-shape bubbles "circle"
   set-default-shape gambuzinos "fish"
   set-default-shape urchins "fish"
-  set-default-shape divers "person"
+  ;set-default-shape divers "person"
   
   init-bubbles initial-bubbles
   
@@ -196,7 +249,7 @@ to setup
   
   init-urchins initial-urchins
   
-  init-divers initial-divers "reactive" 0
+  init-divers initial-divers "deliberative" false -1 
   
   reset-ticks
 end
@@ -299,492 +352,11 @@ to go
   
 end
 
-;;;---------------------------------------------------------------------------
-;;;---------------------------------------------------------------------------
-;;;-----------------------------------ACTIONS---------------------------------
-;;;---------------------------------------------------------------------------
-;;;---------------------------------------------------------------------------
-
-to act-rotate [ agent-id angle ]
-  ask turtle agent-id [rt angle]
-end
-
-to act-face-to [ agent-id target]
-  ifelse is-agent? target [
-    ask turtle agent-id [face turtle other-agent-id]
-  ][
-    let x (item 0 target)
-    let y (item 1 target)
-    ask turtle agent-id [facexy x y]
-  ]
-end
-
-to act-move-forward [ agent-id dist ]
-  ask turtle agent-id [fd (min (list dist agent-max-speed))]
-end
-
-to act-move-to [ agent-id target dist allowed-heading-divergence]
-  let heading-towards-target 0
-  ifelse is-agent? target [
-    set heading-val (heading (towards target))
-  ][
-    let x (item 0 target)
-    let y (item 1 target)
-    set heading-val (heading (towardsxy x y))
-  ]
-  ifelse (subtract-headings heading heading-towards-target) > allowed-heading-divergence [
-    act-face-to agent-id target dist
-  ]
-end
-
-to act-rotate-randomly [ agent-id ]
-  let sig random 2
-  ask turtle agent-id [rt random-float 90 * (-1 ^ sig)]
-end
-
-to act-move-randomly [ agent-id ]
-  ifelse random 2 = 1 [ 
-    act-move-forward agent-id agent-max-speed 
-  ][ 
-    act-rotate-randomly agent-id 
-  ]
-end
-
-to act-fire-harpoon [ attacker-id target-id ]
-  ask turtle target-id [
-      set attacked-by lput attacker-id attacked-by
-      if random-float 1 < hit-probability [
-        set hit-by lput attacker-id hit-by
-      ]
-    ] 
-end
-
-to act-sting [ urchin-id diver-id ]
-  ask diver diver-id [
-    set attacked-by lput urchin-id attacked-by
-    set hit-by lput urchin-id hit-by
-    set health (health - 10)
-  ]
-end
-
-to act-offer-oxygen [ source-id receiver-id quant ]
-  ;print "offering oxygen"
-  ask turtle source-id [set oxygen oxygen - quant]
-  ask turtle receiver-id [
-    set oxygen oxygen + quant
-    set helped-by lput (list "offered" "oxygen" quant) helped-by
-  ]
-end
-
-to act-offer-gambuzinos [ source-id receiver-id quant ]
-  ;print "offering gambuzinos"
-  ask turtle source-id [set stored stored - quant]
-  ask turtle receiver-id [
-    set stored stored + quant
-    set helped-by lput (list "offered" "gambuzinos" quant) helped-by
-  ]
-end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;;;---------------------------------------------------------------------------
-;;;---------------------------------------------------------------------------
-;;;-----------------------------------CYCLES----------------------------------
-;;;---------------------------------------------------------------------------
-;;;---------------------------------------------------------------------------
-
-to CYCLE-DIVERS
-  
-  ;;; COLLECT VISIBLE ENTITIES
-  set visible-urchins (perc-visible-agents visibility-distance 180 urchins)
-  set visible-divers (perc-visible-agents visibility-distance 180 divers)
-  set visible-bubbles (perc-visible-agents visibility-distance 180 bubbles)
-  set visible-gambuzinos (perc-visible-agents visibility-distance 180 gambuzinos)
-  set actions-box lput (list 0 (word "act-move-randomly " who) "default") actions-box
-  
-  listen-to-messages
-  ;;; FIRE RULES
-  rule-seek-oxygen
-  rule-seek-gambuzinos
-  rule-deal-with-urchins
-  rule-team-work
-  rule-share-visible-data
-  
-  ;;; RANK & SELECT
-  let selected-action (item 0 (sort-by [(item 0 ?1) > (item 0 ?2)] actions-box))
-  
-  ;;; RUN SELECTED ACTION
-  ;run (item 1 selected-action)
-  set iteration-actions lput (item 1 selected-action) iteration-actions
-  
-  ;print actions-box
-  set actions-box []
-  
-  ;mark-areas
-  
-  set label (word health " | " precision oxygen 5)
-  
-end
-
-to CYCLE-GAMBUZINOS
-  
-  ;;; Rotate randomly & Move forward
-  let sig random 2
-  rt random-float 20 * (-1 ^ sig)
-  fd agent-max-speed
-    
-end
-
-to CYCLE-URCHINS
-  
-  ;;; Rotate randomly & Move forward
-  let sig random 2
-  let urchin-id who
-  rt random-float 20 * (-1 ^ sig)
-  fd agent-max-speed
-  
-  ;;; Sting nearby divers
-  ask divers [
-    let diver-id who
-    if distance myself <= 1 [ 
-      act-sting urchin-id diver-id 
-    ]
-  ]
-  
-end
-
-to CYCLE-BUBBLES
-  
-  ;;; Replenish the oxygen of divers that are "touching" a bubble.
-  ask divers [
-    if distance myself < 1.5 [ 
-      ;;print (word "Diver " who " replenished its oxygen supply")
-      set oxygen 100
-    ]
-  ]
-  
-end
-
-
-
-
-
-
-
-
-
-
-;;;---------------------------------------------------------------------------
-;;;---------------------------------------------------------------------------
-;;;-----------------------------------RULES-----------------------------------
-;;;---------------------------------------------------------------------------
-;;;---------------------------------------------------------------------------
-
-to rule-seek-oxygen
-  
-  let rule-name "rule-seek-oxygen"
-  
-  ifelse oxygen < 30 and (count visible-bubbles) > 0 [
-    ;;print (word "Diver " who "needs oxygen, is turning to the nearest bubble and moving towards it")
-    let nearest-bubble min-one-of visible-bubbles [distance myself]
-    
-    ifelse (subtract-headings heading (towards nearest-bubble)) != 0 [
-      let command-to-add (word "act-face-to " who " " ([who] of nearest-bubble))
-      add-to-act-box (min (list (100 - oxygen) 50)) command-to-add rule-name
-      ;act-face-to who ([who] of nearest-bubble)
-    ] [
-      let command-to-add (word "act-move-forward " who " " (min (list agent-max-speed (distance nearest-bubble))))
-      add-to-act-box (min (list (100 - oxygen) 50)) command-to-add rule-name
-      ;act-move-forward who agent-max-speed
-    ]
-  ] [
-    ifelse oxygen < 30 [
-      ; ;;print (word "Diver " who " needs oxygen and is broadcasting a message requesting bubble locations.")
-      ; TODO: broadcast message requesting the locations of visible bubbles
-      ; Meanwhile, just move randomly.
-      ;act-move-randomly who
-    ] [
-      ;act-move-randomly who
-    ]
-  ]
-  
-end
-
-to rule-seek-gambuzinos
-  
-  let diver-id who
-  let rule-name "rule-seek-gambuzinos"
-    
-  ifelse count visible-gambuzinos > 0 [
-    ;;print (word "Diver " diver-id " sees " (count visible-gambuzinos) " gambuzinos")
-    
-    let nearest-gambuzino min-one-of visible-gambuzinos [distance myself]
-    let gambuzino-id ([who] of nearest-gambuzino)
-    
-    ifelse (distance nearest-gambuzino) <= fire-distance [
-      
-      if (([xcor] of nearest-gambuzino) = xcor) and (([ycor] of nearest-gambuzino) = ycor) [
-        let command-to-add (word "act-fire-harpoon " diver-id " " gambuzino-id)
-        add-to-act-box (100) command-to-add rule-name
-        stop
-      ]
-      
-      ifelse (subtract-headings (heading) (towards nearest-gambuzino)) > 70 
-        [ 
-          let command-to-add (word "act-face-to " who " " ([who] of nearest-gambuzino))
-          add-to-act-box (100 / (max (list 0.5 (distance nearest-gambuzino)))) command-to-add rule-name
-          ;act-face-to who ([who] of nearest-gambuzino)
-          stop
-        ] [ 
-          let command-to-add (word "act-fire-harpoon " diver-id " " gambuzino-id)
-          add-to-act-box (100 / (max (list 0.5 (distance nearest-gambuzino)))) command-to-add rule-name
-          ;act-fire-harpoon diver-id gambuzino-id 
-          stop
-        ]
-    ] [
-      ;;print (word "Diver " who " is moving to capture gambuzino "  gambuzino-id)
-      ifelse (subtract-headings (heading) (towards nearest-gambuzino)) > 45 
-        [ 
-          let command-to-add (word "act-face-to " who " " ([who] of nearest-gambuzino))
-          add-to-act-box (100 / (max (list 0.5 (distance nearest-gambuzino)))) command-to-add rule-name
-          ;act-face-to who ([who] of nearest-gambuzino)
-          stop
-        ] [ 
-          let command-to-add (word "act-move-forward " who " " agent-max-speed)
-          add-to-act-box (100 / (max (list 0.5 (distance nearest-gambuzino)))) command-to-add rule-name
-          ;act-move-forward who agent-max-speed 
-          stop
-        ]
-    ]
-  ] [
-    ;;;TODO: broadcast message requesting gambuzinos locations
-  ]
-end
-
-to rule-deal-with-urchins
-  
-  let rule-name "rule-deal-with-urchins"
-  let nearest-gambuzino min-one-of visible-gambuzinos [distance myself]
-  let priority 0
-  ifelse nearest-gambuzino = nobody [
-    let nearest-urchin min-one-of visible-urchins [distance myself]
-    if nearest-urchin != nobody [
-      set priority (100 / (distance nearest-urchin))
-    ]
-  ] [
-    set priority (100 * (max (list 0.5 (distance nearest-gambuzino))))
-  ]
-  
-  if health < (count visible-urchins) and (count visible-divers) = 0 [
-    let command-to-add (word "act-rotate " who " " 90)
-    add-to-act-box priority command-to-add rule-name
-    ;act-rotate who 90
-    stop
-  ]
-  if health < (count visible-urchins) and (count visible-divers) >= (count visible-urchins) [
-    let nearest-urchin min-one-of visible-urchins [distance myself]
-    let command-to-add (word "act-fire-harpoon " who " " ([who] of nearest-urchin))
-    add-to-act-box priority command-to-add rule-name
-    ;act-fire-harpoon who ([who] of nearest-urchin)
-    stop
-  ]
-  if health > (count visible-urchins) and (count visible-urchins) > 0 [
-    let nearest-urchin min-one-of visible-urchins [distance myself]
-    let command-to-add (word "act-fire-harpoon " who " " ([who] of nearest-urchin))
-    add-to-act-box priority command-to-add rule-name
-    ;act-fire-harpoon who ([who] of nearest-urchin)
-    stop
-  ]
-  
-end
-
-to rule-survive 
-  ;;; IF there is a "low survival rate"
-  ;;;  AND the agent knows an agent
-  ;;; THEN follow that agent
-  ;;; TODO
-end
-
-to rule-team-work
-  let rule-name "rule-team-work"
-
-  ;;; IF the agent has very low health level (e.g. 10) AND has a neighbor with higher health level THEN
-  ;;;  OFFER A CAPTURED GAMBUZINOS TO THE OTHER AGENT
-  if (health < 30 or oxygen < 30) and (count visible-divers) > 0 and stored > 0 [
-    let nearest-diver min-one-of visible-divers [distance myself]
-    if (distance nearest-diver) <= comm-distance [
-      let gambuzinos-to-give ((30 / (min (list health oxygen))) * (max (list stored 10)))
-      let command-to-add (word "act-offer-gambuzinos " who " " ([who] of nearest-diver) " " gambuzinos-to-give)
-      add-to-act-box (100 + (min (list health oxygen))) command-to-add rule-name
-      stop
-    ]
-  ]
-  
-  ;;; IF there is a "low survival rate" 
-  ;;;  AND no bubbles are available 
-  ;;; THEN send "all" gambuzinos to agents within comm-distance
-  if health < 20 and oxygen < 10 and (count visible-divers) > 0 and (visible-bubbles) = 0 and stored > 0 [
-    ;; I cannot use this rule, according to the project description (i.e. only one action per iteration).
-    ifelse stored > (count visible-divers) [
-      ;; TODO
-    ] [
-      ;; TODO
-    ]
-  ]
-  
-  
-end
-
-to rule-share-visible-data
-  let rule-name "rule-broadcast-visible-data"
-  ;;; IF the agent sees bubbles or urchins
-  ;;; THEN broadcast their locations, IDs and types
-  let bubbles-to-report (list "bubbles" [(list who xcor ycor heading)] of visible-bubbles)
-  let urchins-to-report (list "urchins" [(list who xcor ycor heading)] of visible-urchins)
-  
-  broadcast-to visible-divers 
-    add-content 
-      (list 
-        (list "my data" 
-          (list "location" xcor ycor) 
-          (list "heading" heading) 
-          (list "health" health) 
-          (list "oxygen" oxygen))
-        (list "bubbles" 
-          bubbles-to-report)
-        (list "urchins"
-          urchins-to-report))
-    create-message "inform"
-  
-  ;;; IF the agent sees other divers
-  ;;; THEN broadcast their locations, IDs and types
-end
-
-
-
-
-
-
-
 
 to add-to-act-box [ priority command rule-name ]
   set actions-box lput (list priority command rule-name) actions-box
 end
 
-to-report best-loc-near-target [ targetx targety positions ]
-  ;;; TODO
-end
-
-to-report perc-current-oxygen [ agent-id ]
-  report [oxygen] of diver agent-id
-end
-
-to-report perc-current-health [ agent-id ]
-  report [health] of diver agent-id
-end
-
-to-report perc-stored-gambuzinos [ agent-id ]
-  report [stored] of diver agent-id
-end
-
-to-report perc-captured-gambuzinos [ agent-id ]
-  report [captured] of diver agent-id
-end
-
-to-report perc-visible-agents [ max-distance max-angle agent-type ]
-  let myID who
-  report (agent-type in-cone max-distance max-angle) with [who != myID]
-end
-
-to-report perc-emotional-state [ agent-id ]
-  ;;; TODO
-end
-
-to-report perc-stinged-by [ agent-id ]
-  ;;; TODO
-end
-
-to-report perc-received-help [ ]
-  ;;; TODO
-end
-
-to-report perc-current-iteration
-  report iteration
-end
-
-
-to init-bubbles [ n ]
-  create-bubbles n [
-        set color white
-        setxy random-pxcor random-pycor
-        set agent-max-speed 0
-    ]
-end
-
-to init-gambuzinos [ n ]
-    create-gambuzinos n [
-        set hit-by (list)
-        set attacked-by (list)
-        set agent-max-speed gambuzino-speed
-        set color cyan
-        setxy random-pxcor random-pycor
-        ;;set label (word "g" who)
-    ]
-end
-
-to init-urchins [ n ]
-  create-urchins n [
-        set hit-by (list)
-        set attacked-by (list)
-        set agent-max-speed urchin-speed
-        set color red
-        setxy random-pxcor random-pycor
-        ;;set label (word "u" who)
-    ]
-end
-
-to init-divers [ n diver-type emot-contagion ]
-  
-  if diver-type = "reactive" [
-    create-divers n [
-      set agent-max-speed diver-speed
-      set health 100
-      set oxygen 100
-      set captured 0
-      set stored 0
-      set actions-box (list)
-      set hit-by (list)
-      set attacked-by (list)
-      set got (list)
-      set visible-urchins (turtle-set)
-      set visible-divers (turtle-set)
-      set visible-bubbles (turtle-set)
-      set visible-gambuzinos (turtle-set)
-      set incoming-queue (list)
-      
-      set color green
-      setxy random-pxcor random-pycor
-      set label (word health " | " precision oxygen 5)
-    ]
-  ]
-  if diver-type = "deliberative" [
-    ; TODO
-  ]
-  if diver-type = "emotional" [
-    ; TODO
-  ]
-end
 
 
 to listen-to-messages
@@ -797,299 +369,6 @@ to listen-to-messages
       ;; TODO
     ]
   ]
-end
-
-
-
-
-
-
-
-;;;---------------------------------------------------------------------------
-;;;---------------------------------------------------------------------------
-;;;------------------------DELIBERATIVE AGENT CODE----------------------------
-;;;---------------------------------------------------------------------------
-;;;---------------------------------------------------------------------------
-
-
-
-
-
-to-report beliefs-revision-function [ beliefs percepts ]
-
-  ;TODO: Remove expired (TTL=0) beliefs.
-  clean-expired-beliefs 
-  
-  foreach incoming-queue [ process-message ?1 ]
-  
-  let THRESHOLD_OXYGEN 20
-  let THRESHOLD_HEALTH 20
-  
-  add-belief "health" 1 (list health)
-  add-belief "oxygen" 1 (list oxygen)
-
-  if oxygen < THRESHOLD_OXYGEN [ add-belief  "low_oxygen" 1 (list) ]
-
-  if health < THRESHOLD_HEALTH [ add-belief  "low_health" 1 (list) ]
-  
-  if oxygen < THRESHOLD_OXYGEN and health < THRESHOLD_HEALTH [ add-belief  "low_survival_rate" 1  (list) ]
-
-  if captured-in-previous-iteration > 0 [ add-belief  "got_new_gambuzinos" 1 (list captured-in-previous-iteration) ]
-
-  if (count hit-by) > 0 or (count attacked-by) > 0 [ add-belief  "under_attack" 1 (list) ]
-
-  if (count hit-by) > 0 [ add-belief  "damage_suffered" 1 (list ((count hit-by) * 10) ) ]
-
-  if (count known-bubbles) = 0 [ add-belief  "no_bubbles" 1 (list) ]
-
-  if (count known-gambuzinos) = 0 [ add-belief  "no_gambuzinos" 1 (list) ]
-
-  if (count known-urchins) = 0 [ add-belief  "no_enemies" 1 (list) ]
-
-  ifelse health < THRESHOLD_HEALTH [ 
-    if (count visible-divers) >= (count visible-urchins) [
-      ; TODO: adicionar a crença que consegue derrotar os ouriços que conseguir ver.
-    ]
-    ; TODO: adicionar a crença que não consegue derrotar os ouriços que conseguir ver.
-  ] [
-    ; TODO: caso o número de ouriços 
-  ]
-
-  ask visible-divers [
-    let diver-id who
-    foreach emotions [
-      let name (item 0 ?1)
-      let intensity (item 1 ?1)
-      let object (item 2 ?1) 
-      let TTL 3
-      add-belief "emotion" TTL (list name intensity object)
-    ] 
-  ]
-  
-  if use-emotions? = true [
-    affective-beliefs-revision-fn
-  ]
-
-end
-
-
-to process-message [ M ]
-  let performative (get-performative M)
-  let content    (get-content M)
-
-  ifelse performative = "inform" [
-    process-inform-content content
-  ] [
-    ifelse performative = "ask" [
-      process-ask-content content
-    ][
-      if performative = "request" [
-        process-request-content content
-      ]
-    ]
-  ]
-end
-
-to process-inform-content [ message-content ]
-  
-  let content-type (first message-content)
-  
-  ifelse content-type = "positions" [
-    ;;; ["positions" [ID,TYPE,X,Y,HEALTH,OXYGEN,EMOTIONS] ... [ID,TYPE,X,Y,HEALTH,OXYGEN,EMOTIONS]]
-    foreach (bf message-content) [
-      let agent-id   (item 0 ?1)
-      let agent-type (item 1 ?1)
-      let agent-x    (item 2 ?1)
-      let agent-y    (item 3 ?1)
-      ifelse agent-type = "diver" [
-        set known-divers lput ?1 known-divers
-      ] [
-        ifelse agent-type = "bubble" [
-          set known-bubbles lput ?1 known-bubbles
-        ] [
-          ifelse agent-type = "gambuzino" [
-            set known-gambuzinos lput ?1 known-gambuzinos
-          ] [
-            ; N/A
-          ]
-        ]
-      ]
-      ;add-belief  "known_position" 1 (list agent-id agent-type agent-x agent-y)
-    ]
-  ] [
-    if content-type = "status" [
-      ;;; ["status" [ID,HEALTH,OXYGEN] ... [ID,HEALTH,OXYGEN]]
-      foreach (bf message-content) [
-        let agent-id (item 0 ?1)
-        let agent-health  (item 1 ?1)
-        let agent-oxygen  (item 2 ?1)
-        ;TODO: isto tem de ser feito de outra forma
-        ;add-belief "health" 1 (list agent-id agent-health)
-        ;add-belief "oxygen" 1 (list agent-id agent-oxygen)
-      ]
-    ]
-  ]
-  
-end
-
-to process-ask-content [ message-content ]
-  ;TODO
-  ;("gambuzinos-locations")
-  ;("bubbles-location")
-  ;("urchins-location")
-end
-
-to process-request-content [ message-content ]
-  ;TODO
-  ;("follow-me")
-  ;("trade" REQUESTED OFFERED)
-  ;REQUESTED/OFFERED: (list "gambuzinos" quantity), 
-  ;                   (list "oxygen" quantity), 
-  ;                   (list "follow" iterations), 
-  ;                   (list "location" "bubbles"|"gambuzinos"|"urchins" POSITIONS)
-end
-
-
-
-
-
-
-
-
-to-report options-function [ beliefs intention ]
-  
-  let candidate-desires (list)
-  
-  ifelse use-emotions? = false [
-    set candidate-desires lput (list "survive" (max (list (100 - health) (100 - oxygen) ))) candidate-desires
-    set candidate-desires lput (list "hunt" ((count known-gambuzinos) * 10) ) candidate-desires
-    set candidate-desires lput (list "help" ((length (get-beliefs "request" (task [true]) )) * 1.5)) candidate-desires
-  ] [
-    affective-options-fn beliefs intention
-  ]
-  
-  report candidate-desires
-  
-end
-
-to-report filter-function [ Beliefs Intention Desires ]
-  let sorted-desires (sort-by [ (last ?1) > (last ?2) ] Desires)
-  let best-desire (item 0 sorted-desires)
-  let candidate-intentions (list)
-  
-  if (first best-desire) = "survive" [
-    set candidate-intentions lput (list "gather-oxygen" (100 - oxygen)) candidate-intentions
-      
-    ask visible-urchins [
-      set candidate-intentions lput (list "attack-urchin" (list who) (health + (10 / (distance myself)))) candidate-intentions
-      set candidate-intentions lput (list "escape-urchin" (list who) ((100 - health) + (10 / (distance myself)))) candidate-intentions
-    ]
-  ]
-  if (first best-desire) = "hunt" [
-    ask known-gambuzinos [
-      set candidate-intentions (list "hunt" (list who) (distance myself)) candidate-intentions
-    ]
-  ]
-  if (first best-desire) = "help" [
-    let requests (get-beliefs "request")
-    foreach requests [
-      
-    ]
-  ]
-end
-
-to-report execute-action [ A ]
-  
-end
-
-to-report intention-complete? [ beliefs intention ]
-  let name (item 0 intention)
-  
-  if name = "gather-oxygen" [
-    ;TODO
-  ]
-  
-  if name = "attack-urchin" [
-    ;TODO
-  ]
-  
-  if name = "escape-urchin" [ 
-    ;TODO
-  ]
-  
-  if name = "hunt" [
-    ;TODO
-  ]
-  
-  if name = "follow" [
-    ;TODO
-  ]
-  
-  if name = "give" [
-    ;TODO
-  ]
-end
-
-to-report intention-impossible? [ beliefs intention ]
-  let name (item 0 intention)
-  
-  if name = "gather-oxygen" [
-    ;TODO
-  ]
-  
-  if name = "attack-urchin" [
-    ;TODO
-  ]
-  
-  if name = "escape-urchin" [ 
-    ;TODO
-  ]
-  
-  if name = "hunt" [
-    ;TODO
-  ]
-  
-  if name = "follow" [
-    ;TODO
-  ]
-  
-  if name = "give" [
-    ;TODO
-  ]
-end
-
-
-to-report build-plan-function [ beliefs intention ]
-  let name (item 0 intention)
-  let actions (list)
-  
-  if name = "gather-oxygen" [
-    ;TODO
-  ]
-  
-  if name = "attack-urchin" [
-    ;TODO
-  ]
-  
-  if name = "escape-urchin" [ 
-    ;TODO
-  ]
-  
-  if name = "hunt" [
-    ;TODO
-  ]
-  
-  if name = "follow" [
-    ;TODO
-  ]
-  
-  if name = "give" [
-    ;TODO
-  ]
-end
-
-to-report execute-action [ action ]
-  ;TODO
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -1128,7 +407,7 @@ hit-probability
 hit-probability
 0
 1
-0.1
+0.08
 0.01
 1
 NIL
@@ -1172,10 +451,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-5
-411
-78
-444
+6
+413
+79
+446
 NIL
 setup
 NIL
@@ -1197,7 +476,7 @@ urchins-creation-probability
 urchins-creation-probability
 0
 1
-0.1
+0
 0.01
 1
 NIL
@@ -1224,7 +503,7 @@ INPUTBOX
 410
 97
 initial-bubbles
-20
+30
 1
 0
 Number
@@ -1235,7 +514,7 @@ INPUTBOX
 208
 97
 initial-divers
-10
+5
 1
 0
 Number
@@ -1246,7 +525,7 @@ INPUTBOX
 107
 97
 initial-gambuzinos
-10
+80
 1
 0
 Number
@@ -1257,7 +536,7 @@ INPUTBOX
 309
 97
 initial-urchins
-100
+20
 1
 0
 Number
@@ -1279,7 +558,7 @@ INPUTBOX
 199
 197
 visibility-distance
-10
+5
 1
 0
 Number
@@ -1372,7 +651,7 @@ INPUTBOX
 108
 389
 diver-speed
-0.1
+0.5
 1
 0
 Number

@@ -1,0 +1,18 @@
+to-report options-function [ beliefs intention ]
+  
+  let candidate-desires (list)
+  
+  ifelse use-emotions? = false [
+    print known-gambuzinos
+    set candidate-desires lput (list "survive" (max (list (100 - health) (100 - oxygen) 1 ))) candidate-desires
+    set candidate-desires lput (list "hunt" ((count known-gambuzinos) * 10) ) candidate-desires
+    set candidate-desires lput (list "help" ((length (get-beliefs "request" (task [true]) )) * 1.5)) candidate-desires
+  ] [
+    report (runresult affective-options-fn beliefs intention)
+  ]
+  
+  ;show (word "options-function | candidate-desires: " candidate-desires)
+  
+  report candidate-desires
+  
+end

@@ -1,0 +1,31 @@
+to process-inform-content [ message-content ]
+  
+  let content-type (first message-content)
+  
+  ifelse content-type = "status" [
+    ;;; ["positions" [ID,TYPE,X,Y,HEALTH,OXYGEN,EMOTIONS] ... [ID,TYPE,X,Y,HEALTH,OXYGEN,EMOTIONS]]
+    foreach (bf message-content) [
+      let agent-id   (item 0 ?1)
+      let agent-type (item 1 ?1)
+      let agent-x    (item 2 ?1)
+      let agent-y    (item 3 ?1)
+      ifelse agent-type = "diver" [
+        set known-divers lput ?1 known-divers
+      ] [
+        ifelse agent-type = "bubble" [
+          set known-bubbles lput ?1 known-bubbles
+        ] [
+          ifelse agent-type = "gambuzino" [
+            set known-gambuzinos lput ?1 known-gambuzinos
+          ] [
+            ; N/A
+          ]
+        ]
+      ]
+      ;add-belief  "known_position" 1 (list agent-id agent-type agent-x agent-y)
+    ]
+  ] [
+    ; N/A
+  ]
+  
+end

@@ -1,0 +1,92 @@
+to act-rotate [ agent-id angle ]
+  ask turtle agent-id [rt angle]
+end
+
+to act-face-to [ agent-id target]
+  ifelse is-number? target and is-turtle? turtle target [
+    ask turtle agent-id [face turtle target]
+  ] [
+    let x (item 0 target)
+    let y (item 1 target)
+    ask turtle agent-id [facexy x y]
+  ]
+end
+
+to act-move-forward [ agent-id dist ]
+  ask turtle agent-id [fd (min (list dist agent-max-speed))]
+end
+
+to act-move-to [ agent-id target allowed-heading-divergence]
+  ask turtle agent-id [
+    show target
+    
+    let heading-towards-target 0
+    ifelse is-agent? target [
+      set heading-towards-target (towards target)
+    ][
+      let x (item 0 target)
+      let y (item 1 target)
+      set heading-towards-target (towardsxy x y)
+    ]
+    show heading-towards-target
+    ;ifelse (subtract-headings heading heading-towards-target) > allowed-heading-divergence [
+    ;  show "ROTATING"
+    ;  act-face-to agent-id target
+    ;] [
+    ;  show "FORWARD"
+    ;  act-move-forward agent-id 10
+    ;]
+    act-face-to agent-id target
+    act-move-forward agent-id 10
+  ]
+end
+
+to act-rotate-randomly [ agent-id ]
+  let sig random 2
+  ask turtle agent-id [rt random-float 90 * (-1 ^ sig)]
+end
+
+to act-move-randomly [ agent-id ]
+  ifelse random 2 = 1 [ 
+    act-move-forward agent-id 10 
+  ][ 
+    act-rotate-randomly agent-id 
+  ]
+end
+
+to act-fire-harpoon [ attacker-id target-id ]
+  if (is-turtle? turtle target-id) = true [ 
+    ask turtle target-id [
+      set attacked-by lput attacker-id attacked-by
+      if random-float 1 < hit-probability [
+        set hit-by lput attacker-id hit-by
+      ]
+    ] 
+  ]
+end
+
+to act-sting [ urchin-id diver-id ]
+  ask diver diver-id [
+    set attacked-by lput urchin-id attacked-by
+    set hit-by lput urchin-id hit-by
+    set health (health - 10)
+  ]
+end
+
+to act-offer-oxygen [ source-id receiver-id quant ]
+  ;print "offering oxygen"
+  ask turtle source-id [set oxygen oxygen - quant]
+  ask turtle receiver-id [
+    set oxygen oxygen + quant
+    set helped-by lput (list "offered" "oxygen" quant) helped-by
+  ]
+end
+
+to act-offer-gambuzinos [ source-id receiver-id quant ]
+  ;print "offering gambuzinos"
+  ask turtle source-id [set stored stored - quant]
+  ask turtle receiver-id [
+    set stored stored + quant
+    set helped-by lput (list "offered" "gambuzinos" quant) helped-by
+  ]
+end

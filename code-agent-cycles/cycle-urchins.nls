@@ -1,0 +1,17 @@
+to CYCLE-URCHINS
+  
+  ;;; Rotate randomly & Move forward
+  let sig random 2
+  let urchin-id who
+  rt random-float 20 * (-1 ^ sig)
+  fd agent-max-speed
+  
+  ;;; Sting nearby divers
+  ask divers [
+    let diver-id who
+    if distance myself <= 1 [ 
+      act-sting urchin-id diver-id 
+    ]
+  ]
+  
+end

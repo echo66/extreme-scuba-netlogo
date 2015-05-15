@@ -1,0 +1,24 @@
+to create-hunt-gambuzino-plan [ gambuzino-id ] 
+	set current-plan (list)
+  show (word "gambuzino-id : " gambuzino-id " " (turtle gambuzino-id))
+  let dist 0
+  ask turtle gambuzino-id [ set dist (distance myself) ]
+  if member? (gambuzino gambuzino-id) visible-gambuzinos and dist <= fire-distance [
+    show "ATTACK GAMBUZINO"
+    let command-to-add (word "act-fire-harpoon " who " " gambuzino-id)
+    ;let act (task [add-to-act-box 0 (item 0 ?) ""] )
+    add-step (task [add-to-act-box 0 command-to-add ""]) (list gambuzino-id) (task [not is-turtle? turtle (item 0 ?)])
+  ]
+  if member? (gambuzino gambuzino-id) known-gambuzinos [
+    show "FIND GAMBUZINO"
+    let gambuzino-patch (patch [xcor] of (gambuzino gambuzino-id) [ycor] of (gambuzino gambuzino-id))
+    let my-patch (patch-here)
+    ask gambuzino-patch [ set pcolor yellow ]
+    show (word my-patch gambuzino-patch)
+    let pos0 (list ([pxcor] of my-patch) ([pycor] of my-patch))
+    let pos1 (list ([pxcor] of gambuzino-patch) ([pycor] of gambuzino-patch))
+    add-path-plan pos0 pos1
+  ]
+	set intention-done-fn? (task [not is-turtle? turtle (item 0 ?)])
+	set intention-impossible-fn? (task [not is-turtle? turtle (item 0 ?)])
+end

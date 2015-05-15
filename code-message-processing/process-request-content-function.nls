@@ -1,0 +1,9 @@
+to process-request-content [ message-content ]
+  ;TODO
+  ;("follow-me")
+  ;("trade" REQUESTED OFFERED)
+  ;REQUESTED/OFFERED: (list "gambuzinos" quantity), 
+  ;                   (list "oxygen" quantity), 
+  ;                   (list "follow" iterations), 
+  ;                   (list "location" "bubbles"|"gambuzinos"|"urchins" POSITIONS)
+end

@@ -1,0 +1,8 @@
+to CYCLE-GAMBUZINOS
+  
+  ;;; Rotate randomly & Move forward
+  let sig random 2
+  rt random-float 20 * (-1 ^ sig)
+  fd agent-max-speed
+    
+end

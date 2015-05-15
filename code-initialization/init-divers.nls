@@ -1,0 +1,59 @@
+to init-divers [ n diver-type communicate? emot-contagion ]
+  create-divers n [
+      set agent-max-speed diver-speed
+      set health 100
+      set oxygen 100
+      set captured 0
+      set stored 0
+      set actions-box (list)
+      set hit-by (list)
+      set attacked-by (list)
+      set got (list)
+      
+      set can-communicate? communicate?
+      
+      ifelse emot-contagion < 0 [
+        set use-emotions? false
+      ] [
+        set use-emotions? true
+      ]
+      
+      set visible-urchins (turtle-set)
+      set visible-divers (turtle-set)
+      set visible-bubbles (turtle-set)
+      set visible-gambuzinos (turtle-set)
+      
+      set known-urchins (turtle-set)
+      set known-divers (turtle-set)
+      set known-bubbles (turtle-set)
+      set known-gambuzinos (turtle-set)
+      set incoming-queue (list)
+      set agent-architecture diver-type
+      
+      set color green
+      setxy random-pxcor random-pycor
+      set label (word health " | " precision oxygen 5)
+      
+      if diver-type = "reactive" [
+        ; N/A
+      ]
+      
+      if diver-type = "deliberative" [
+        set B (list)
+        set active-desire (list)
+        set active-intention (list)
+        set current-plan (list) 
+        
+        set get-percepts-fn (task [(list)])
+        set beliefs-revision-fn (task beliefs-revision-function)
+        set filter-fn (task filter-function)
+        set options-fn (task options-function)
+        
+        set build-plan-fn (task build-plan-function)
+        set intention-done-fn? (task intention-complete? )
+        set intention-impossible-fn? (task intention-impossible? )
+        set reconsider-fn? (task [false])
+        set sound-fn? (task [true])
+      ]
+    ]
+end

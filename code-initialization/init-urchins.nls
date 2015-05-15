@@ -1,0 +1,10 @@
+to init-urchins [ n ]
+  create-urchins n [
+        set hit-by (list)
+        set attacked-by (list)
+        set agent-max-speed urchin-speed
+        set color red
+        setxy random-pxcor random-pycor
+        ;;set label (word "u" who)
+    ]
+end

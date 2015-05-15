@@ -1,0 +1,91 @@
+to-report find-path [initial-content objective-content]
+  let open (list)
+  let closed (list)
+  let to-explore (list)
+
+  let it 1
+  
+  let root-node (create-node initial-content [] 0)
+  set open (fput root-node open)
+
+  ;print (word "\nSetup for A* algorithm")
+  ;print (word "Initial 'open' list:  " open)
+  ;print (word "Initial 'closed' list:  " closed)
+  ;print (word "Initial 'to-explore':  " to-explore)
+
+  while [not empty? open] [
+
+    set to-explore (first open) 
+    set open (remove to-explore open) 
+    set closed (fput to-explore closed) 
+
+    ;print (word "\nMain iteration nº " it)
+    ;print (word "\t'open' list:\t" open)
+    ;print (word "\t'closed' list:\t" closed)
+    ;print (word "\t'to-explore':\t" to-explore)
+    
+    ;show (list (get-node-content to-explore) objective-content)
+    ifelse (get-node-content to-explore) = objective-content [ 
+      report setup-solution to-explore closed 
+    ] [
+      let neighbor-nodes (get-node-neighbors to-explore objective-content)
+      foreach neighbor-nodes [
+        let neighbor-node ?
+        ;print (word "\n\tNeighbor\t" neighbor-node)
+        let old-neighbor-node (filter [ (get-node-content neighbor-node) = (get-node-content ?) and (get-node-H neighbor-node objective-content) < (get-node-H ? objective-content) ] open)
+        ifelse not empty? old-neighbor-node [ 
+          ;print (word "\t\tUpdating ('open') from " old-neighbor-node " to " neighbor-node)
+          set open (remove (first old-neighbor-node) open )
+          set open fput neighbor-node open 
+        ] [
+          set old-neighbor-node (filter [ (get-node-content neighbor-node) = (get-node-content ?) ] closed)
+          ifelse not empty? old-neighbor-node [ 
+            set old-neighbor-node (first old-neighbor-node)
+            if (get-node-H old-neighbor-node objective-content) > (get-node-H neighbor-node objective-content) [ 
+              ;print (word "\t\tUpdating ('closed') from " old-neighbor-node " to " neighbor-node)
+              set closed (remove old-neighbor-node closed)
+              set open (fput neighbor-node open )
+            ]       
+          ] [ 
+            ;print (word "\t\tAdding to 'open' " neighbor-node)
+            set open (fput neighbor-node open)
+          ]
+        ] 
+      ] 
+
+      set open sort-by [ (get-node-H ?1 objective-content) < (get-node-H ?2 objective-content) ] open
+
+    ]
+
+    set it (it + 1)
+    
+  ]  
+  
+  report []
+  
+end
+
+to-report setup-solution [no closed]
+  foreach closed [
+    ;let coords (get-node-content ?1)
+    ;ask patch (item 0 coords) (item 1 coords) [ set pcolor orange ] 
+  ]
+  let res (list (get-node-content no))
+  let parent (get-node-parent no)
+  
+  while [not empty? parent] [
+    set parent (first (filter [ parent = (get-node-content ?) ] closed))
+    set res (fput (get-node-content parent) res) 
+    set parent (last parent)
+  ]
+  
+  ;; remove the first element of the solution
+  report butfirst res
+  ;report res
+end
+
+to iluminate-path [ path ]
+  foreach path [
+    ;ask patch (item 0 ?) (item 1 ?) [ set pcolor yellow ]
+  ]
+end

@@ -1,0 +1,11 @@
+to CYCLE-BUBBLES
+  
+  ;;; Replenish the oxygen of divers that are "touching" a bubble.
+  ask divers [
+    if distance myself < 1.5 [ 
+      ;;print (word "Diver " who " replenished its oxygen supply")
+      set oxygen 100
+    ]
+  ]
+  
+end

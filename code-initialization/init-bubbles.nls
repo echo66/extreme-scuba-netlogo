@@ -1,0 +1,7 @@
+to init-bubbles [ n ]
+  create-bubbles n [
+        set color white
+        setxy random-pxcor random-pycor
+        set agent-max-speed 0
+    ]
+end

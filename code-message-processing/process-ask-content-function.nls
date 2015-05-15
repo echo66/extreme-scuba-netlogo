@@ -1,0 +1,6 @@
+to process-ask-content [ message-content ]
+  ;TODO
+  ;("gambuzinos-locations")
+  ;("bubbles-location")
+  ;("urchins-location")
+end

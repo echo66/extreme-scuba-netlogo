@@ -1,0 +1,41 @@
+to-report filter-function [ Beliefs Desires Intention ]
+  ;show (word "filter-function | Beliefs: " Beliefs)
+  ;show (word "filter-function | Intention: " Intention)
+  ;show (word "filter-function | Desires: " Desires)
+  
+  let sorted-desires (sort-by [ (last ?1) > (last ?2) ] Desires)
+  let best-desire (item 0 sorted-desires)
+  set active-desire best-desire
+  let candidate-intentions (list)
+  
+  if (first best-desire) = "survive" [
+    set candidate-intentions lput (list "gather-oxygen" (max (list (100 - oxygen) 1))) candidate-intentions
+      
+    let _health health
+    ask known-urchins [
+      let dist (distance myself)
+      set candidate-intentions lput (list "attack-urchin" (list who) (_health / dist)) candidate-intentions
+      set candidate-intentions lput (list "escape-urchin" (list who) ((100 - _health) + (10 / dist))) candidate-intentions
+    ]
+  ]
+  if (first best-desire) = "hunt" [
+    ask known-gambuzinos [
+      set candidate-intentions (lput (list "hunt" (list who) (distance myself)) candidate-intentions)
+    ]
+  ]
+  if (first best-desire) = "help" [
+    let requests (get-beliefs "request" task [true])
+    foreach requests [
+      ; TODO
+    ]
+    ;TODO
+  ]
+  
+  show (word "filter-function | candidate-intentions: " candidate-intentions)
+  
+  let best-intention (first (sort-by [ (last ?1) > (last ?2) ] candidate-intentions))
+  
+  show (word "filter-function | best-intention: " best-intention)
+  
+  report best-intention
+end

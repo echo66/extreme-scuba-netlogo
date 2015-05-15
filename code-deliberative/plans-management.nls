@@ -1,0 +1,54 @@
+to execute-plan-step
+	if empty? current-plan [ 
+		stop
+	]
+	let step next-plan-step
+  ;show (word "execute-plan-step | step: " step)
+  ;show (word "execute-plan-step | step-data: " step-data step)
+  if is-string? (step-name step) [
+    (run task (step-name step))
+  ]
+  if is-command-task? (step-name step) [
+    (run task (step-name step) (step-data step))
+  ]
+	if (runresult task (step-done step) (step-data step))  [
+		remove-step step
+	]
+end 
+
+to-report peek-current-step
+	report first current-plan 
+end 
+
+to-report next-plan-step
+	report first current-plan
+end 
+
+
+to pop-step
+	set current-plan bf current-plan
+end
+
+to remove-step [ step ]
+	set current-plan (remove step current-plan)
+end 
+
+to add-step [ name data done]
+	set current-plan fput (list name data done) current-plan
+end 
+
+
+
+
+
+to-report step-name [ step ]
+  report first step
+end
+
+to-report step-data [ step ]
+  report (item 1 step)
+end
+
+to-report step-done [ step ]
+  report last step
+end 
