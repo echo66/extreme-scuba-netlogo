@@ -4,10 +4,16 @@ Beliefs:
 	<> AgentType(TTL, Id, Type)
 	<> Health(TTL, Id, Health)
 	<> Oxygen(TTL, Id, Health)
-	<> Known(TTL, Id, X, Y, Z)
-	<> Visible(TTL, Id, X, Y, Z)
+	<> Known(TTL, Id, X, Y, (Z))
+	<> Visible(TTL, Id, X, Y, (Z))
 	<> Emotion(TTL, Id, Name, Intensity, Object)
+	<> Following(TTL, FollowedId, FollowerId)
+	<> Attacking(TTL, AttackerId, AttackedId)
+	<> GotNewFish(TTL, It)
+	<> CurrentIteration(TTL, It)
+	<> Helped(TTL, HelperId, HelpedId, Action)
+	<> Requested(TTL, RequesterId, Request)
 
 Rules:
 
-	Known(TTL, Id, X, Y, Z) :- Visible(TTL, Id, X, Y, Z)
+	Known(TTL, Id, X, Y, (Z)) :- Visible(TTL, Id, X, Y, (Z))
