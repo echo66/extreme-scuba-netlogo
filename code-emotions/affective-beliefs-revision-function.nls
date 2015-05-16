@@ -1,3 +1,14 @@
 to affective-beliefs-revision-function [ beliefs percepts ]
-	;TODO
+	ask visible-divers [
+		if use-emotions? = true [
+			let diver-id who
+			foreach emotions [
+				let name (item 0 ?1)
+				let intensity (item 1 ?1)
+				let object (item 2 ?1) 
+				let TTL 3
+				add-belief "emotion" TTL (list name intensity object)
+			] 
+		]
+	]
 end

@@ -3,13 +3,17 @@ to act-rotate [ agent-id angle ]
 end
 
 to act-face-to [ agent-id target]
-  ifelse is-number? target and is-turtle? turtle target [
-    ask turtle agent-id [face turtle target]
+  ifelse is-number? target [
+    if is-turtle? turtle target [
+      print "É turtle"
+      ask turtle agent-id [face turtle target]
+    ] 
   ] [
     let x (item 0 target)
     let y (item 1 target)
     ask turtle agent-id [facexy x y]
   ]
+  
 end
 
 to act-move-forward [ agent-id dist ]
@@ -55,10 +59,13 @@ to act-move-randomly [ agent-id ]
 end
 
 to act-fire-harpoon [ attacker-id target-id ]
-  if (is-turtle? turtle target-id) = true [ 
+  if (is-turtle? turtle target-id) = true and (is-turtle? turtle attacker-id) = true [ 
+    let dist 0
+    ask turtle attacker-id [ ask turtle target-id [ set dist (distance myself) ] ]
     ask turtle target-id [
       set attacked-by lput attacker-id attacked-by
-      if random-float 1 < hit-probability [
+      ask patch ([xcor] of turtle target-id) ([ycor] of turtle target-id) [set pcolor red]
+      if random-float 1 < hit-probability and dist <= fire-distance [
         set hit-by lput attacker-id hit-by
       ]
     ] 

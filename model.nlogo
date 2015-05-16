@@ -208,6 +208,8 @@ __includes[
   "code-deliberative/custom-code/custom-find-path-functions.nls" 
   "code-deliberative/custom-code/code-plans/gather-oxygen-plan.nls"
   "code-deliberative/custom-code/code-plans/hunt-gambuzino-plan.nls"
+  "code-deliberative/custom-code/code-plans/attack-urchin-plan.nls"
+  "code-deliberative/custom-code/code-plans/escape-urchin-plan.nls"
   
   ;;; EMOTIONS CODE
   "code-emotions/affective-beliefs-revision-function.nls"
@@ -254,7 +256,9 @@ to setup
   reset-ticks
 end
 
-to go
+to go  
+  
+  ask patches [ set pcolor black ]
   
   tick
   
@@ -370,6 +374,17 @@ to listen-to-messages
     ]
   ]
 end
+
+
+to add-attack-link [ attacker-id target-id ]
+  ask turtle attacker-id [
+    create-link-to turtle target-id [ 
+      set color red 
+      set tie-mode "free"
+      tie 
+    ]
+  ]
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 423
@@ -407,7 +422,7 @@ hit-probability
 hit-probability
 0
 1
-0.08
+0.1
 0.01
 1
 NIL
@@ -476,7 +491,7 @@ urchins-creation-probability
 urchins-creation-probability
 0
 1
-0
+0.1
 0.01
 1
 NIL
@@ -514,7 +529,7 @@ INPUTBOX
 208
 97
 initial-divers
-5
+20
 1
 0
 Number
@@ -547,7 +562,7 @@ INPUTBOX
 323
 469
 rseed
-10
+400
 1
 0
 Number
@@ -651,7 +666,7 @@ INPUTBOX
 108
 389
 diver-speed
-0.5
+0.2
 1
 0
 Number

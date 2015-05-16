@@ -1,0 +1,14 @@
+to create-escape-urchin-plan [ urchin-id ] 
+	set current-plan (list)
+	
+	add-step (task [add-to-act-box 0 (word "act-face-to " who " " urchin-id) ""]) (list) (task [true])
+	add-step (task [add-to-act-box 0 (word "act-rotate " who " " 180) ""]) (list) (task [true])
+	add-step (task [add-to-act-box 0 (word "act-move-forward " who " " agent-max-speed) ""]) (list) (task [true])
+  add-step (task [add-to-act-box 0 (word "act-move-forward " who " " agent-max-speed) ""]) (list) (task [true])
+	add-step (task [add-to-act-box 0 (word "act-rotate " who " " 180) ""]) (list) (task [true])
+  add-step (task [add-to-act-box 0 (word "act-fire-harpoon " who " " urchin-id) ""]) (list) (task [true])
+  add-step (task [add-to-act-box 0 (word "act-fire-harpoon " who " " urchin-id) ""]) (list) (task [true])
+	
+	set intention-done-fn? (task [get-beliefs "known" (task [(not is-turtle? turtle (item 0 ?)) or (not member? turtle (item 0 ?) visible-urchins)])])
+	set intention-impossible-fn? (task [false])
+end

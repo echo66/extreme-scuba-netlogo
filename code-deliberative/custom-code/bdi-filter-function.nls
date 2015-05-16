@@ -31,11 +31,11 @@ to-report filter-function [ Beliefs Desires Intention ]
     ;TODO
   ]
   
-  show (word "filter-function | candidate-intentions: " candidate-intentions)
+  ;show (word "filter-function | candidate-intentions: " candidate-intentions)
   
   let best-intention (first (sort-by [ (last ?1) > (last ?2) ] candidate-intentions))
   
-  show (word "filter-function | best-intention: " best-intention)
+  ;show (word "filter-function | best-intention: " best-intention)
   
   report best-intention
 end

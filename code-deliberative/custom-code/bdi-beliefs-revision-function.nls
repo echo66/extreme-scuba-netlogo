@@ -7,6 +7,20 @@ to-report beliefs-revision-function [ beliefs percepts ]
     foreach incoming-queue [ process-message ?1 ]
   ]
   
+  let visible-and-known (list)
+  ask visible-urchins [ set visible-and-known (lput (list "visible" 1 (list who "bubble" xcor ycor)) visible-and-known) ]
+  ask known-urchins [ set visible-and-known (lput (list "known" 2 (list who "bubble" xcor ycor)) visible-and-known) ]
+  ask visible-gambuzinos [ set visible-and-known (lput (list "visible" 1 (list who "bubble" xcor ycor)) visible-and-known) ]
+  ask known-gambuzinos [ set visible-and-known (lput (list "known" 5 (list who "bubble" xcor ycor)) visible-and-known) ]
+  ask visible-bubbles [ set visible-and-known (lput (list "visible" 1 (list who "bubble" xcor ycor)) visible-and-known) ]
+  ask known-bubbles [ 
+    set visible-and-known (lput (list "known" 5 (list who "bubble" xcor ycor)) visible-and-known) 
+    set visible-and-known (lput (list "known-bubble" 5 (list who xcor ycor)) visible-and-known) 
+  ]
+  ask visible-divers [ set visible-and-known (lput (list "visible" 1 (list who "diver" xcor ycor)) visible-and-known) ]
+  ask known-divers [ set visible-and-known (lput (list "known" 1 (list who "diver" xcor ycor)) visible-and-known) ]
+  foreach visible-and-known [ add-belief (item 0 ?) (item 1 ?) (item 2 ?) ]
+  
   let THRESHOLD_OXYGEN 20
   let THRESHOLD_HEALTH 20
   
@@ -38,19 +52,6 @@ to-report beliefs-revision-function [ beliefs percepts ]
     ; TODO: adicionar a cren�a que n�o consegue derrotar os ouri�os que conseguir ver.
   ] [
     ; TODO: caso o n�mero de ouri�os 
-  ]
-
-  ask visible-divers [
-    let diver-id who
-    if use-emotions? = true [
-      foreach emotions [
-        let name (item 0 ?1)
-        let intensity (item 1 ?1)
-        let object (item 2 ?1) 
-        let TTL 3
-        add-belief "emotion" TTL (list name intensity object)
-      ] 
-    ]
   ]
   
   if use-emotions? = true [

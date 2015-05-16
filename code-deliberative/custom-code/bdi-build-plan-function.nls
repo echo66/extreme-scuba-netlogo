@@ -8,11 +8,13 @@ to-report build-plan-function [ beliefs intention ]
   ]
   
   if name = "attack-urchin" [
-    ;TODO
+	let urchin-id (item 0 item 1 intention)
+    create-attack-urchin-plan urchin-id
   ]
   
   if name = "escape-urchin" [ 
-    ;TODO
+	let urchin-id (item 0 item 1 intention)
+    create-escape-urchin-plan urchin-id
   ]
   
   if name = "hunt" [

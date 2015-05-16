@@ -22,7 +22,7 @@ to process-inform-content [ message-content ]
           ]
         ]
       ]
-      ;add-belief  "known_position" 1 (list agent-id agent-type agent-x agent-y)
+      add-belief  "known" 3 (list agent-id agent-type agent-x agent-y)
     ]
   ] [
     ; N/A

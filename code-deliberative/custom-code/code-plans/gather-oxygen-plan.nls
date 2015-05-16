@@ -1,20 +1,20 @@
 to create-gather-oxygen-plan 
 	set current-plan (list)
-  	ifelse (count known-bubbles) > 0 [
-      let nearest-bubble min-one-of visible-bubbles [distance myself]
-    	let nearest-bubble-patch (patch ([xcor] of nearest-bubble) ([ycor] of nearest-bubble))
-    	let my-patch (patch-here)
-      let pos0 (list ([pxcor] of my-patch) ([pycor] of my-patch))
-      let pos1 (list ([pxcor] of nearest-bubble-patch) ([pycor] of nearest-bubble-patch))
-      add-path-plan pos0 pos1
-  	] [
-  		ifelse can-communicate? = true [
-    			;TODO
-  		] [
-          let command-to-add (word "act-move-randomly " who)
-          add-step (task [add-to-act-box 0 command-to-add ""]) (list) (task [true])
-      ]
-  	]
+	ifelse (count known-bubbles) > 0 [
+    let nearest-bubble min-one-of visible-bubbles [distance myself]
+  	let nearest-bubble-patch (patch ([xcor] of nearest-bubble) ([ycor] of nearest-bubble))
+  	let my-patch (patch-here)
+    let pos0 (list ([pxcor] of my-patch) ([pycor] of my-patch))
+    let pos1 (list ([pxcor] of nearest-bubble-patch) ([pycor] of nearest-bubble-patch))
+    add-path-plan pos0 pos1
+	] [
+		ifelse can-communicate? = true [
+  			;TODO
+		] [
+        add-step (task [add-to-act-box 0 (word "act-move-forward " who " " 10) ""]) (list) (task [true])
+        add-step (task [add-to-act-box 0 (word "act-move-randomly " who) ""]) (list) (task [true])
+    ]
+	]
 	set intention-done-fn? (task [oxygen >= 50])
 	set intention-impossible-fn? (task [false])
 end

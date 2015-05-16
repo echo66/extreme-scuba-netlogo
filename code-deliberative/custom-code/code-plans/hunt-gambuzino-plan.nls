@@ -4,10 +4,10 @@ to create-hunt-gambuzino-plan [ gambuzino-id ]
   let dist 0
   ask turtle gambuzino-id [ set dist (distance myself) ]
   if member? (gambuzino gambuzino-id) visible-gambuzinos and dist <= fire-distance [
-    show "ATTACK GAMBUZINO"
-    let command-to-add (word "act-fire-harpoon " who " " gambuzino-id)
+    ;show "ATTACK GAMBUZINO"
+    ;let command-to-add (word "act-fire-harpoon " who " " gambuzino-id)
     ;let act (task [add-to-act-box 0 (item 0 ?) ""] )
-    add-step (task [add-to-act-box 0 command-to-add ""]) (list gambuzino-id) (task [not is-turtle? turtle (item 0 ?)])
+    ;add-step (task [add-to-act-box 0 command-to-add ""]) (list gambuzino-id) (task [not is-turtle? turtle (item 0 ?)])
   ]
   if member? (gambuzino gambuzino-id) known-gambuzinos [
     show "FIND GAMBUZINO"
@@ -19,6 +19,11 @@ to create-hunt-gambuzino-plan [ gambuzino-id ]
     let pos1 (list ([pxcor] of gambuzino-patch) ([pycor] of gambuzino-patch))
     add-path-plan pos0 pos1
   ]
+  add-step (task [add-to-act-box 0 (word "act-fire-harpoon " who " " gambuzino-id) ""]) (list) (task [true])
+  add-step (task [add-to-act-box 0 (word "act-fire-harpoon " who " " gambuzino-id) ""]) (list) (task [true])
+  add-step (task [add-to-act-box 0 (word "act-fire-harpoon " who " " gambuzino-id) ""]) (list) (task [true])
+  add-step (task [add-to-act-box 0 (word "act-fire-harpoon " who " " gambuzino-id) ""]) (list) (task [true])
+  add-step (task [add-to-act-box 0 (word "act-fire-harpoon " who " " gambuzino-id) ""]) (list) (task [true])
 	set intention-done-fn? (task [not is-turtle? turtle (item 0 ?)])
 	set intention-impossible-fn? (task [not is-turtle? turtle (item 0 ?)])
 end
